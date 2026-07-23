@@ -7,13 +7,13 @@ export const Header: React.FC = () => {
 
   return (
     <header className="h-10 bg-[#0F141C] border-b border-[#1E2638] flex items-center justify-between px-4 select-none shrink-0">
-      {/* Brand Typography Logo */}
+      {/* Brand Typography Logo & Subtitle */}
       <div className="flex items-center gap-3">
         <span className="text-xs font-semibold tracking-[0.35em] text-slate-200 uppercase">
           A U R A
         </span>
-        <span className="text-[10px] text-slate-500 font-mono border-l border-[#1E2638] pl-3">
-          MISSION CONTROL v0.1.0
+        <span className="text-[11px] text-slate-400 font-medium border-l border-[#1E2638] pl-3">
+          Executive Intelligence Partner
         </span>
       </div>
 
