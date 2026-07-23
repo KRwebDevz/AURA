@@ -27,6 +27,9 @@ describe('Kernel (e2e)', () => {
         expect(res.body.status).toBe('healthy');
         expect(typeof res.body.uptime).toBe('number');
         expect(typeof res.body.timestamp).toBe('string');
+        expect(res.body.kernel).toEqual({
+          state: 'RUNNING',
+        });
       });
   });
 

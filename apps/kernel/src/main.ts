@@ -6,6 +6,8 @@ import { printStartupBanner } from './kernel/banner';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { logger: false });
+  app.enableShutdownHooks();
+
   const configService = app.get(ConfigurationService);
   const logger = app.get(LoggerManager);
   logger.setContext('Kernel');
