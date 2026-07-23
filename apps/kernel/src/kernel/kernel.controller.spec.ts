@@ -1,24 +1,17 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { ConfigModule } from '@nestjs/config';
 import { KernelController } from './kernel.controller';
 import { KernelService } from './kernel.service';
-import { ConfigurationService } from '../config/configuration.service';
-import configuration from '../config/configuration';
-import { validateEnv } from '../config/env.schema';
+import { ConfigurationModule } from '../config/configuration.module';
+import { LoggingModule } from '../platform/logging/logging.module';
 
 describe('KernelController', () => {
   let kernelController: KernelController;
 
   beforeEach(async () => {
     const app: TestingModule = await Test.createTestingModule({
-      imports: [
-        ConfigModule.forRoot({
-          load: [configuration],
-          validate: validateEnv,
-        }),
-      ],
+      imports: [ConfigurationModule, LoggingModule],
       controllers: [KernelController],
-      providers: [KernelService, ConfigurationService],
+      providers: [KernelService],
     }).compile();
 
     kernelController = app.get<KernelController>(KernelController);

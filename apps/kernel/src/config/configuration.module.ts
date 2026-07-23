@@ -1,5 +1,6 @@
 import { Global, Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import * as path from 'path';
 import configuration from './configuration';
 import { ConfigurationService } from './configuration.service';
 import { validateEnv } from './env.schema';
@@ -11,7 +12,13 @@ import { validateEnv } from './env.schema';
       isGlobal: true,
       load: [configuration],
       validate: validateEnv,
-      envFilePath: ['.env', '../../.env'],
+      envFilePath: [
+        '.env',
+        '../.env',
+        '../../.env',
+        path.resolve(process.cwd(), '.env'),
+        path.resolve(process.cwd(), '../../.env'),
+      ],
     }),
   ],
   providers: [ConfigurationService],
