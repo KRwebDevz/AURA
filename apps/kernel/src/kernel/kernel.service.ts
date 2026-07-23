@@ -1,0 +1,30 @@
+import { Injectable } from '@nestjs/common';
+import { ConfigurationService } from '../config/configuration.service';
+
+export interface HealthResponse {
+  name: string;
+  version: string;
+  environment: string;
+  status: string;
+  uptime: number;
+  timestamp: string;
+}
+
+@Injectable()
+export class KernelService {
+  private readonly startTime: number = Date.now();
+
+  constructor(private readonly configService: ConfigurationService) {}
+
+  getHealth(): HealthResponse {
+    const uptimeInSeconds = (Date.now() - this.startTime) / 1000;
+    return {
+      name: this.configService.name,
+      version: this.configService.version,
+      environment: this.configService.environment,
+      status: 'healthy',
+      uptime: parseFloat(uptimeInSeconds.toFixed(2)),
+      timestamp: new Date().toISOString(),
+    };
+  }
+}
