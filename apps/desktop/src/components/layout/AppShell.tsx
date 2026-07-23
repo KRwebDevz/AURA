@@ -6,37 +6,14 @@ import { DailyBriefing } from '../mission-control/DailyBriefing';
 import { ConversationCanvas } from '../conversation/ConversationCanvas';
 import { useAuraStore } from '../../store/useAuraStore';
 import { mockBriefingData } from '../../services/mockApi';
+import { useConversation } from '../../features/conversation/hooks/useConversation';
 
 export const AppShell: React.FC = () => {
-  const { viewMode, messages, isThinking, presenceState, setViewMode, addMessage, setThinking } =
-    useAuraStore();
+  const { viewMode, messages, isThinking, presenceState } = useAuraStore();
+  const { sendMessage } = useConversation();
 
   const handleSelectPrompt = (prompt: string) => {
-    setViewMode('conversation-focus');
-    addMessage({
-      id: `user-${Date.now()}`,
-      role: 'user',
-      content: prompt,
-      timestamp: new Date().toLocaleTimeString([], {
-        hour: '2-digit',
-        minute: '2-digit',
-      }),
-    });
-    setThinking(true, 'AURA is processing your request...');
-    setTimeout(() => {
-      addMessage({
-        id: `aura-${Date.now()}`,
-        role: 'aura',
-        content: `Sir, I have prepared your briefing materials for "${prompt}". All relevant items are loaded.`,
-        timestamp: new Date().toLocaleTimeString([], {
-          hour: '2-digit',
-          minute: '2-digit',
-        }),
-        model: 'llama3.2',
-        provider: 'ollama',
-      });
-      setThinking(false);
-    }, 600);
+    sendMessage(prompt);
   };
 
   return (

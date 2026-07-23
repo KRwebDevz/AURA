@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { ConversationMessage } from '../../types';
-import { Bot, FolderGit2, HardDrive, History, Loader2, User } from 'lucide-react';
+import { AlertCircle, Bot, FolderGit2, HardDrive, History, Loader2, User } from 'lucide-react';
 
 interface ConversationCanvasProps {
   messages: ConversationMessage[];
@@ -33,38 +33,53 @@ export const ConversationCanvas: React.FC<ConversationCanvasProps> = ({
             </p>
           </div>
           <span className="text-[10px] font-mono text-slate-500 bg-[#0F141C] border border-[#1E2638] px-2.5 py-1 rounded-sm">
-            PROVIDER: OLLAMA (LLAMA3.2)
+            ENDPOINT: POST /conversation (OLLAMA LLAMA3.2)
           </span>
         </div>
 
         {/* Message Log Loop */}
         {messages.map((msg) => {
-          const isAura = msg.role === 'aura';
+          const isAssistant = msg.role === 'assistant' || msg.role === 'system';
+          const isError = msg.status === 'error';
 
           return (
             <div
               key={msg.id}
               className={`space-y-1.5 ${
-                isAura ? 'text-left' : 'text-right max-w-2xl ml-auto'
+                isAssistant ? 'text-left' : 'text-right max-w-2xl ml-auto'
               }`}
             >
               {/* Header / Badge */}
               <div
                 className={`flex items-center gap-2 text-xs ${
-                  isAura ? 'justify-start' : 'justify-end'
+                  isAssistant ? 'justify-start' : 'justify-end'
                 }`}
               >
-                {isAura ? (
+                {isAssistant ? (
                   <>
-                    <div className="w-5 h-5 rounded-sm bg-sky-500/10 border border-sky-500/30 flex items-center justify-center">
-                      <Bot className="w-3 h-3 text-sky-400" />
+                    <div
+                      className={`w-5 h-5 rounded-sm flex items-center justify-center ${
+                        isError
+                          ? 'bg-red-950/40 border border-red-800/60'
+                          : 'bg-sky-500/10 border border-sky-500/30'
+                      }`}
+                    >
+                      {isError ? (
+                        <AlertCircle className="w-3 h-3 text-red-400" />
+                      ) : (
+                        <Bot className="w-3 h-3 text-sky-400" />
+                      )}
                     </div>
                     <div className="flex flex-col">
-                      <span className="font-semibold text-sky-400 text-xs tracking-widest uppercase">
+                      <span
+                        className={`font-semibold text-xs tracking-widest uppercase ${
+                          isError ? 'text-red-400' : 'text-sky-400'
+                        }`}
+                      >
                         A U R A
                       </span>
                       <span className="text-[10px] font-mono text-slate-500 leading-none mt-0.5">
-                        {msg.timestamp}
+                        {msg.createdAt}
                       </span>
                     </div>
                   </>
@@ -75,7 +90,7 @@ export const ConversationCanvas: React.FC<ConversationCanvasProps> = ({
                         EXECUTIVE USER
                       </span>
                       <span className="text-[10px] font-mono text-slate-500 leading-none mt-0.5">
-                        {msg.timestamp}
+                        {msg.createdAt}
                       </span>
                     </div>
                     <div className="w-5 h-5 rounded-sm bg-slate-800 border border-slate-700 flex items-center justify-center">
@@ -88,9 +103,11 @@ export const ConversationCanvas: React.FC<ConversationCanvasProps> = ({
               {/* Transcript Box (No Chat Bubbles) */}
               <div
                 className={`p-4 rounded-md text-xs leading-relaxed ${
-                  isAura
-                    ? 'bg-[#161B26] border border-[#1E2638] text-slate-100'
-                    : 'bg-[#1E2433] border border-[#334155] text-slate-100 font-medium'
+                  isError
+                    ? 'bg-red-950/20 border border-red-900/50 text-red-300'
+                    : isAssistant
+                      ? 'bg-[#161B26] border border-[#1E2638] text-slate-100'
+                      : 'bg-[#1E2433] border border-[#334155] text-slate-100 font-medium'
                 }`}
               >
                 {msg.content}

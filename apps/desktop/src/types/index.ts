@@ -45,10 +45,22 @@ export interface BriefingData {
 
 export interface ConversationMessage {
   id: string;
-  role: 'user' | 'aura';
+  role: 'user' | 'assistant' | 'system';
   content: string;
-  timestamp: string;
+  createdAt: string;
+  status: 'sending' | 'sent' | 'error';
   model?: string;
   provider?: string;
-  presenceState?: string;
+}
+
+export interface ConversationSession {
+  id: string;
+  messages: ConversationMessage[];
+}
+
+export interface BackendConversationResponse {
+  id: string;
+  message: string;
+  provider: string;
+  model: string;
 }

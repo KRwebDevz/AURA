@@ -55,10 +55,11 @@ export const mockBriefingData: BriefingData = {
 export const mockInitialMessages: ConversationMessage[] = [
   {
     id: 'init-1',
-    role: 'aura',
+    role: 'assistant',
     content:
       'Good morning, Sir. Current system check: All core modules operational. Your 10:00 AM Capgemini briefing notes and Sutr quotation files are staged for your review.',
-    timestamp: '09:15 AM',
+    createdAt: '09:15 AM',
+    status: 'sent',
     model: 'llama3.2',
     provider: 'ollama',
   },
@@ -83,12 +84,13 @@ export async function sendMockCommand(
     setTimeout(() => {
       resolve({
         id: `msg-${Date.now()}`,
-        role: 'aura',
+        role: 'assistant',
         content: `Sir, I have processed your request for "${prompt}". All requested items have been updated across your active workspace context.`,
-        timestamp: new Date().toLocaleTimeString([], {
+        createdAt: new Date().toLocaleTimeString([], {
           hour: '2-digit',
           minute: '2-digit',
         }),
+        status: 'sent',
         model: 'llama3.2',
         provider: 'ollama',
       });
