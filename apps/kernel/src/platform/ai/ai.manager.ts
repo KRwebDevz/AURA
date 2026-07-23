@@ -2,6 +2,8 @@ import { Inject, Injectable } from '@nestjs/common';
 import type { IAIProvider } from './ai.interface';
 import { AI_PROVIDER_TOKEN } from './ai.provider';
 import {
+  AIChatRequest,
+  AIChatResponse,
   AIGenerateRequest,
   AIGenerateResponse,
   AIModel,
@@ -18,23 +20,34 @@ export class AIManager {
     this.logger.setContext('AIManager');
   }
 
+  async chat(request: AIChatRequest): Promise<AIChatResponse> {
+    const promptLen = request.prompt ? request.prompt.length : (request.messages ? request.messages.length : 0);
+    this.logger.debug(
+      `Executing chat request using provider '${this.provider.name}'`,
+      {
+        model: request.model,
+        promptLength: promptLen,
+      },
+    );
+    return this.provider.chat(request);
+  }
+
   async generate(request: AIGenerateRequest): Promise<AIGenerateResponse> {
     this.logger.debug(
       `Generating response using provider '${this.provider.name}'`,
       {
         model: request.model,
-        promptLength: request.prompt.length,
+        promptLength: request.prompt ? request.prompt.length : 0,
       },
     );
     return this.provider.generate(request);
   }
 
-  stream(request: AIGenerateRequest): AsyncIterable<string> {
+  stream(request: AIChatRequest | AIGenerateRequest): AsyncIterable<string> {
     this.logger.debug(
       `Streaming response using provider '${this.provider.name}'`,
       {
         model: request.model,
-        promptLength: request.prompt.length,
       },
     );
     return this.provider.stream(request);

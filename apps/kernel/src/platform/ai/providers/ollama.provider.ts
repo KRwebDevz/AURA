@@ -1,10 +1,13 @@
 import { IAIProvider } from '../ai.interface';
 import {
+  AIChatRequest,
+  AIChatResponse,
   AIGenerateRequest,
   AIGenerateResponse,
   AIModel,
   AIProviderHealth,
   AIProviderOptions,
+  ChatMessage,
 } from '../ai.types';
 
 export class OllamaProvider implements IAIProvider {
@@ -15,6 +18,61 @@ export class OllamaProvider implements IAIProvider {
   constructor(options: AIProviderOptions) {
     this.baseUrl = options.baseUrl.replace(/\/$/, '');
     this.defaultModel = options.defaultModel;
+  }
+
+  async chat(request: AIChatRequest): Promise<AIChatResponse> {
+    const model = request.model || this.defaultModel;
+    const url = `${this.baseUrl}/api/chat`;
+
+    const messages: ChatMessage[] = request.messages
+      ? [...request.messages]
+      : [];
+
+    if (request.system && !messages.some((m) => m.role === 'system')) {
+      messages.unshift({ role: 'system', content: request.system });
+    }
+
+    if (request.prompt) {
+      messages.push({ role: 'user', content: request.prompt });
+    }
+
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model,
+          messages,
+          options: request.options,
+          stream: false,
+        }),
+      });
+
+      if (!response.ok) {
+        // Fallback to /api/generate if /api/chat is unavailable on legacy versions
+        const fallbackPrompt = messages.map((m) => `${m.role}: ${m.content}`).join('\n');
+        return this.generate({ prompt: fallbackPrompt, model, options: request.options });
+      }
+
+      const data = (await response.json()) as {
+        message?: { content?: string };
+        model?: string;
+        done?: boolean;
+        total_duration?: number;
+      };
+
+      return {
+        response: data.message?.content || '',
+        model: data.model || model,
+        done: data.done ?? true,
+        totalDurationMs: data.total_duration
+          ? Math.round(data.total_duration / 1_000_000)
+          : undefined,
+      };
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
+      throw new Error(`[OllamaProvider] Chat error: ${msg}`);
+    }
   }
 
   async generate(request: AIGenerateRequest): Promise<AIGenerateResponse> {
@@ -61,7 +119,7 @@ export class OllamaProvider implements IAIProvider {
     }
   }
 
-  async *stream(request: AIGenerateRequest): AsyncIterable<string> {
+  async *stream(request: AIChatRequest | AIGenerateRequest): AsyncIterable<string> {
     const model = request.model || this.defaultModel;
     const url = `${this.baseUrl}/api/generate`;
 
@@ -70,7 +128,7 @@ export class OllamaProvider implements IAIProvider {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         model,
-        prompt: request.prompt,
+        prompt: request.prompt || '',
         system: request.system,
         options: request.options,
         stream: true,

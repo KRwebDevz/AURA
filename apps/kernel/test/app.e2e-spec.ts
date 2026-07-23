@@ -16,11 +16,12 @@ describe('Kernel (e2e)', () => {
     await app.init();
   });
 
-  it('/health (GET)', () => {
+  it('/health (GET) should attach X-Request-ID and return status', () => {
     return request(app.getHttpServer())
       .get('/health')
       .expect(200)
       .expect((res) => {
+        expect(res.headers['x-request-id']).toBeDefined();
         expect(res.body.name).toBe('AURA');
         expect(res.body.version).toBe('0.1.0');
         expect(res.body.environment).toBeDefined();
@@ -38,6 +39,7 @@ describe('Kernel (e2e)', () => {
       .get('/ai/health')
       .expect(200)
       .expect((res) => {
+        expect(res.headers['x-request-id']).toBeDefined();
         expect(res.body.provider).toBe('ollama');
         expect(res.body.status).toBeDefined();
       });

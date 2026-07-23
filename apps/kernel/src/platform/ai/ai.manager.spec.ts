@@ -10,6 +10,7 @@ describe('AIManager', () => {
   beforeEach(() => {
     mockProvider = {
       name: 'mock-ai-provider',
+      chat: jest.fn(),
       generate: jest.fn(),
       stream: jest.fn(),
       health: jest.fn(),
@@ -27,6 +28,20 @@ describe('AIManager', () => {
     } as unknown as jest.Mocked<LoggerManager>;
 
     manager = new AIManager(mockProvider, mockLogger);
+  });
+
+  it('should delegate chat requests to the provider', async () => {
+    const request = { prompt: 'Hello chat' };
+    const expectedResponse = {
+      response: 'Hello conversational partner',
+      model: 'test-model',
+      done: true,
+    };
+    mockProvider.chat.mockResolvedValue(expectedResponse);
+
+    const result = await manager.chat(request);
+    expect(mockProvider.chat).toHaveBeenCalledWith(request);
+    expect(result).toEqual(expectedResponse);
   });
 
   it('should delegate generate requests to the provider', async () => {

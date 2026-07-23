@@ -12,6 +12,35 @@ describe('OllamaProvider', () => {
     jest.clearAllMocks();
   });
 
+  it('should send POST request to /api/chat', async () => {
+    const fakeFetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: jest.fn().mockResolvedValue({
+        message: { role: 'assistant', content: 'Hello chat response' },
+        model: 'llama3.2',
+        done: true,
+        total_duration: 300000000,
+      }),
+    });
+    global.fetch = fakeFetch as unknown as typeof fetch;
+
+    const res = await provider.chat({ prompt: 'Hello' });
+
+    expect(fakeFetch).toHaveBeenCalledWith(
+      'http://localhost:11434/api/chat',
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({
+          model: 'llama3.2',
+          messages: [{ role: 'user', content: 'Hello' }],
+          stream: false,
+        }),
+      }),
+    );
+    expect(res.response).toBe('Hello chat response');
+    expect(res.totalDurationMs).toBe(300);
+  });
+
   it('should send POST request to /api/generate', async () => {
     const fakeFetch = jest.fn().mockResolvedValue({
       ok: true,

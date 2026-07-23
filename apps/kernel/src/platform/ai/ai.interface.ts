@@ -1,4 +1,6 @@
 import {
+  AIChatRequest,
+  AIChatResponse,
   AIGenerateRequest,
   AIGenerateResponse,
   AIModel,
@@ -7,8 +9,9 @@ import {
 
 export interface IAIProvider {
   readonly name: string;
+  chat(request: AIChatRequest): Promise<AIChatResponse>;
   generate(request: AIGenerateRequest): Promise<AIGenerateResponse>;
-  stream(request: AIGenerateRequest): AsyncIterable<string>;
+  stream(request: AIChatRequest | AIGenerateRequest): AsyncIterable<string>;
   health(): Promise<AIProviderHealth>;
   getModels(): Promise<AIModel[]>;
 }
