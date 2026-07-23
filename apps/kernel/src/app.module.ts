@@ -3,6 +3,7 @@ import { ConfigurationModule } from './config/configuration.module';
 import { LoggingModule } from './platform/logging/logging.module';
 import { LifecycleModule } from './platform/lifecycle/lifecycle.module';
 import { AIModule } from './platform/ai/ai.module';
+import { PersonaModule } from './platform/persona/persona.module';
 import { ConversationModule } from './conversation/conversation.module';
 import { KernelModule } from './kernel/kernel.module';
 
@@ -12,6 +13,7 @@ import { KernelModule } from './kernel/kernel.module';
     LoggingModule,
     LifecycleModule,
     AIModule,
+    PersonaModule,
     ConversationModule,
     KernelModule,
   ],

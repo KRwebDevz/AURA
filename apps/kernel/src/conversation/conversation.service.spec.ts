@@ -1,11 +1,12 @@
 import { AIManager } from '../platform/ai/ai.manager';
 import { LoggerManager } from '../platform/logging/logger.manager';
+import { PersonaManager } from '../platform/persona/persona.manager';
 import { ConversationMapper } from './conversation.mapper';
 import { ConversationService } from './conversation.service';
-import { AURA_PERSONA_001 } from './prompts/persona-001';
 
 describe('ConversationService', () => {
   let mockAiManager: jest.Mocked<AIManager>;
+  let mockPersonaManager: jest.Mocked<PersonaManager>;
   let mapper: ConversationMapper;
   let mockLogger: jest.Mocked<LoggerManager>;
   let service: ConversationService;
@@ -19,6 +20,12 @@ describe('ConversationService', () => {
       getModels: jest.fn(),
     } as unknown as jest.Mocked<AIManager>;
 
+    mockPersonaManager = {
+      getSystemPrompt: jest.fn().mockReturnValue('Mock System Prompt'),
+      getPersona: jest.fn(),
+      getDefaultPersona: jest.fn(),
+    } as unknown as jest.Mocked<PersonaManager>;
+
     mapper = new ConversationMapper();
 
     mockLogger = {
@@ -31,27 +38,33 @@ describe('ConversationService', () => {
       fatal: jest.fn(),
     } as unknown as jest.Mocked<LoggerManager>;
 
-    service = new ConversationService(mockAiManager, mapper, mockLogger);
+    service = new ConversationService(
+      mockAiManager,
+      mockPersonaManager,
+      mapper,
+      mockLogger,
+    );
   });
 
-  it('should process user message with PERSONA-001 prompt and return mapped DTO', async () => {
+  it('should process user message with PersonaManager system prompt and return mapped DTO', async () => {
     mockAiManager.chat.mockResolvedValue({
-      response: 'Hello user, I am AURA.',
+      response: 'Good afternoon, Sir. I am ready to assist you.',
       model: 'llama3.2',
       done: true,
     });
 
-    const result = await service.processMessage({ message: 'Hello AURA' });
+    const result = await service.processMessage({ message: 'Status report' });
 
+    expect(mockPersonaManager.getSystemPrompt).toHaveBeenCalled();
     expect(mockAiManager.chat).toHaveBeenCalledWith({
-      system: AURA_PERSONA_001,
-      prompt: 'Hello AURA',
+      system: 'Mock System Prompt',
+      prompt: 'Status report',
       model: undefined,
     });
 
     expect(result.id).toBeDefined();
     expect(typeof result.id).toBe('string');
-    expect(result.message).toBe('Hello user, I am AURA.');
+    expect(result.message).toBe('Good afternoon, Sir. I am ready to assist you.');
     expect(result.provider).toBe('ollama');
     expect(result.model).toBe('llama3.2');
   });

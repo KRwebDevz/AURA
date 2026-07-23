@@ -2,17 +2,18 @@ import { Injectable } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { AIManager } from '../platform/ai/ai.manager';
 import { LoggerManager } from '../platform/logging/logger.manager';
+import { PersonaManager } from '../platform/persona/persona.manager';
 import { ConversationMapper } from './conversation.mapper';
 import {
   ConversationResponse,
   CreateConversationRequest,
 } from './conversation.types';
-import { AURA_PERSONA_001 } from './prompts/persona-001';
 
 @Injectable()
 export class ConversationService {
   constructor(
     private readonly aiManager: AIManager,
+    private readonly personaManager: PersonaManager,
     private readonly mapper: ConversationMapper,
     private readonly logger: LoggerManager,
   ) {
@@ -29,8 +30,10 @@ export class ConversationService {
       messageLength: request.message ? request.message.length : 0,
     });
 
+    const systemPrompt = this.personaManager.getSystemPrompt();
+
     const aiResponse = await this.aiManager.chat({
-      system: AURA_PERSONA_001,
+      system: systemPrompt,
       prompt: request.message,
       model: request.model,
     });
