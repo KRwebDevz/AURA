@@ -8,6 +8,8 @@ export interface EnvironmentVariables {
   LOG_LEVEL: LogLevel;
   TIMEZONE: string;
   LOCALE: string;
+  OLLAMA_BASE_URL: string;
+  OLLAMA_DEFAULT_MODEL: string;
 }
 
 export interface AppConfig {
@@ -18,4 +20,6 @@ export interface AppConfig {
   logLevel: LogLevel;
   timezone: string;
   locale: string;
+  ollamaBaseUrl: string;
+  ollamaDefaultModel: string;
 }

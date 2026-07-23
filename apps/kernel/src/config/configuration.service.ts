@@ -43,6 +43,14 @@ export class ConfigurationService {
     return this.config.locale;
   }
 
+  get ollamaBaseUrl(): string {
+    return this.config.ollamaBaseUrl;
+  }
+
+  get ollamaDefaultModel(): string {
+    return this.config.ollamaDefaultModel;
+  }
+
   get isDevelopment(): boolean {
     return this.config.environment === 'development';
   }

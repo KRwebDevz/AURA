@@ -15,5 +15,7 @@ export default registerAs(CONFIG_KEY, (): AppConfig => {
     logLevel: env.LOG_LEVEL,
     timezone: env.TIMEZONE,
     locale: env.LOCALE,
+    ollamaBaseUrl: env.OLLAMA_BASE_URL,
+    ollamaDefaultModel: env.OLLAMA_DEFAULT_MODEL,
   };
 });

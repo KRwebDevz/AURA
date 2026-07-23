@@ -33,6 +33,16 @@ describe('Kernel (e2e)', () => {
       });
   });
 
+  it('/ai/health (GET)', () => {
+    return request(app.getHttpServer())
+      .get('/ai/health')
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.provider).toBe('ollama');
+        expect(res.body.status).toBeDefined();
+      });
+  });
+
   afterEach(async () => {
     await app.close();
   });

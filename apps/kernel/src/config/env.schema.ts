@@ -18,6 +18,8 @@ export const envSchema = z.object({
     .default(DEFAULT_CONFIG.LOG_LEVEL),
   TIMEZONE: z.string().default(DEFAULT_CONFIG.TIMEZONE),
   LOCALE: z.string().default(DEFAULT_CONFIG.LOCALE),
+  OLLAMA_BASE_URL: z.string().default(DEFAULT_CONFIG.OLLAMA_BASE_URL),
+  OLLAMA_DEFAULT_MODEL: z.string().default(DEFAULT_CONFIG.OLLAMA_DEFAULT_MODEL),
 });
 
 export function validateEnv(
