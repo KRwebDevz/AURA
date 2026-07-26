@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { ConversationMessage } from '../../types';
-import { AlertCircle, Bot, FolderGit2, HardDrive, History, Loader2, User } from 'lucide-react';
+import { AlertCircle, Bot, FolderGit2, HardDrive, History, Loader2, User, Zap } from 'lucide-react';
 
 interface ConversationCanvasProps {
   messages: ConversationMessage[];
@@ -29,11 +29,12 @@ export const ConversationCanvas: React.FC<ConversationCanvasProps> = ({
               Conversation Canvas
             </h2>
             <p className="text-[11px] text-slate-500 mt-0.5">
-              Focus Mode • Executive Transcript
+              Focus Mode • Executive SSE Streaming Engine
             </p>
           </div>
-          <span className="text-[10px] font-mono text-slate-500 bg-[#0F141C] border border-[#1E2638] px-2.5 py-1 rounded-sm">
-            ENDPOINT: POST /conversation (OLLAMA LLAMA3.2)
+          <span className="text-[10px] font-mono text-slate-500 bg-[#0F141C] border border-[#1E2638] px-2.5 py-1 rounded-sm flex items-center gap-1">
+            <Zap className="w-3 h-3 text-sky-400" />
+            STREAMING: POST /conversation/stream
           </span>
         </div>
 
@@ -41,6 +42,7 @@ export const ConversationCanvas: React.FC<ConversationCanvasProps> = ({
         {messages.map((msg) => {
           const isAssistant = msg.role === 'assistant' || msg.role === 'system';
           const isError = msg.status === 'error';
+          const isStreaming = msg.isStreaming;
 
           return (
             <div
@@ -71,13 +73,20 @@ export const ConversationCanvas: React.FC<ConversationCanvasProps> = ({
                       )}
                     </div>
                     <div className="flex flex-col">
-                      <span
-                        className={`font-semibold text-xs tracking-widest uppercase ${
-                          isError ? 'text-red-400' : 'text-sky-400'
-                        }`}
-                      >
-                        A U R A
-                      </span>
+                      <div className="flex items-center gap-1.5">
+                        <span
+                          className={`font-semibold text-xs tracking-widest uppercase ${
+                            isError ? 'text-red-400' : 'text-sky-400'
+                          }`}
+                        >
+                          A U R A
+                        </span>
+                        {isStreaming && (
+                          <span className="text-[9px] font-mono text-sky-400 bg-sky-950/60 border border-sky-800/60 px-1 rounded-xs animate-pulse">
+                            LIVE
+                          </span>
+                        )}
+                      </div>
                       <span className="text-[10px] font-mono text-slate-500 leading-none mt-0.5">
                         {msg.createdAt}
                       </span>
@@ -102,7 +111,7 @@ export const ConversationCanvas: React.FC<ConversationCanvasProps> = ({
 
               {/* Transcript Box (No Chat Bubbles) */}
               <div
-                className={`p-4 rounded-md text-xs leading-relaxed ${
+                className={`p-4 rounded-md text-xs leading-relaxed whitespace-pre-wrap ${
                   isError
                     ? 'bg-red-950/20 border border-red-900/50 text-red-300'
                     : isAssistant
@@ -111,6 +120,9 @@ export const ConversationCanvas: React.FC<ConversationCanvasProps> = ({
                 }`}
               >
                 {msg.content}
+                {isStreaming && (
+                  <span className="inline-block w-1.5 h-3.5 bg-sky-400 ml-1 translate-y-0.5 animate-pulse" />
+                )}
               </div>
             </div>
           );
@@ -145,8 +157,8 @@ export const ConversationCanvas: React.FC<ConversationCanvasProps> = ({
               <span className="text-slate-200 font-mono">llama3.2</span>
             </div>
             <div className="flex items-center justify-between text-slate-400">
-              <span>Memory Window:</span>
-              <span className="text-emerald-400 font-mono">Active</span>
+              <span>Streaming Engine:</span>
+              <span className="text-emerald-400 font-mono">SSE Active</span>
             </div>
           </div>
         </div>

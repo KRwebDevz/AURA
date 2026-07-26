@@ -1,5 +1,5 @@
 import { ConversationApi } from '../../../services/api/conversation.api';
-import { ConversationMessage } from '../../../types';
+import { ConversationMessage, StreamChunkPayload } from '../../../types';
 
 export class ConversationFeatureService {
   static async sendUserMessage(
@@ -36,5 +36,14 @@ export class ConversationFeatureService {
         provider: 'aura-kernel',
       };
     }
+  }
+
+  static streamUserMessage(
+    userText: string,
+    onChunk: (payload: StreamChunkPayload) => void,
+    onError: (error: Error) => void,
+    onComplete: () => void,
+  ): void {
+    ConversationApi.streamMessage(userText, onChunk, onError, onComplete);
   }
 }

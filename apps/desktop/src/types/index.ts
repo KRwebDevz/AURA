@@ -1,5 +1,7 @@
 export type ViewMode = 'mission-control' | 'conversation-focus';
 
+export type AssistantState = 'THINKING' | 'STREAMING' | 'COMPLETE' | 'ERROR';
+
 export type WorkspaceDomain =
   | 'personal'
   | 'trading'
@@ -49,6 +51,7 @@ export interface ConversationMessage {
   content: string;
   createdAt: string;
   status: 'sending' | 'sent' | 'error';
+  isStreaming?: boolean;
   model?: string;
   provider?: string;
 }
@@ -63,4 +66,13 @@ export interface BackendConversationResponse {
   message: string;
   provider: string;
   model: string;
+}
+
+export interface StreamChunkPayload {
+  id: string;
+  chunk: string;
+  done: boolean;
+  model?: string;
+  provider?: string;
+  error?: string;
 }

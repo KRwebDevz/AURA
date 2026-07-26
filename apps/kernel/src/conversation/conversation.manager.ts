@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { ConversationService } from './conversation.service';
+import { ConversationService, StreamChunkPayload } from './conversation.service';
 import {
   ConversationResponse,
   CreateConversationRequest,
@@ -20,5 +20,12 @@ export class ConversationManager {
   ): Promise<ConversationResponse> {
     this.logger.debug('Handling conversation turn');
     return this.conversationService.processMessage(request);
+  }
+
+  handleStreamingConversation(
+    request: CreateConversationRequest,
+  ): AsyncIterable<StreamChunkPayload> {
+    this.logger.debug('Handling streaming conversation turn');
+    return this.conversationService.streamMessage(request);
   }
 }

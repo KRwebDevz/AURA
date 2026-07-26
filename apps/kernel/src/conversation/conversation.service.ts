@@ -13,6 +13,14 @@ import {
   CreateConversationRequest,
 } from './conversation.types';
 
+export interface StreamChunkPayload {
+  id: string;
+  chunk: string;
+  done: boolean;
+  model?: string;
+  provider?: string;
+}
+
 @Injectable()
 export class ConversationService {
   constructor(
@@ -98,5 +106,76 @@ export class ConversationService {
       finalAiResponse,
       'ollama',
     );
+  }
+
+  async *streamMessage(
+    request: CreateConversationRequest,
+  ): AsyncIterable<StreamChunkPayload> {
+    const conversationId = randomUUID();
+
+    this.logger.debug(
+      `Executing intelligence streaming pipeline for conversation '${conversationId}'`,
+      { conversationId },
+    );
+
+    // 1. Pre-Generation Validation
+    const preValidation = this.responseValidator.validatePreGeneration(
+      request.message,
+    );
+    if (preValidation.canBypassLlm && preValidation.fallbackResponse) {
+      yield {
+        id: conversationId,
+        chunk: preValidation.fallbackResponse,
+        done: true,
+        model: 'system',
+        provider: 'system',
+      };
+      return;
+    }
+
+    // 2. Capability & Domain Intent Analysis
+    const intentResult = this.intentService.analyzeIntent(request.message);
+
+    // 3. Context Provider Aggregation
+    const context = await this.contextBuilder.buildContext(
+      intentResult.capability,
+      intentResult.domain,
+    );
+
+    // 4. PromptRequest Payload Assembly
+    const promptRequest: PromptRequest = {
+      capability: intentResult.capability,
+      domain: intentResult.domain,
+      context,
+      userMessage: request.message,
+    };
+
+    const systemPrompt =
+      this.promptManager.generateSystemPrompt(promptRequest);
+
+    // 5. Stream from AI Provider
+    const tokenStream = this.aiManager.stream({
+      system: systemPrompt,
+      prompt: request.message,
+      model: request.model,
+    });
+
+    for await (const token of tokenStream) {
+      yield {
+        id: conversationId,
+        chunk: token,
+        done: false,
+        model: request.model || 'llama3.2',
+        provider: 'ollama',
+      };
+    }
+
+    yield {
+      id: conversationId,
+      chunk: '',
+      done: true,
+      model: request.model || 'llama3.2',
+      provider: 'ollama',
+    };
   }
 }
