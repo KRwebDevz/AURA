@@ -1,6 +1,6 @@
 import React from 'react';
 import { useAuraStore } from '../../store/useAuraStore';
-import { LayoutGrid, MessageSquare, Minus, Square, X } from 'lucide-react';
+import { LayoutGrid, MessageSquare, Minus, Settings, Square, X } from 'lucide-react';
 
 export const Header: React.FC = () => {
   const { viewMode, setViewMode } = useAuraStore();
@@ -40,6 +40,17 @@ export const Header: React.FC = () => {
         >
           <MessageSquare className="w-3.5 h-3.5" />
           <span>Focus Mode</span>
+        </button>
+        <button
+          onClick={() => setViewMode('settings')}
+          className={`flex items-center gap-1.5 px-2.5 py-0.5 text-xs rounded-sm transition-colors ${
+            viewMode === 'settings'
+              ? 'bg-[#1E2433] text-sky-400 font-medium'
+              : 'text-slate-400 hover:text-slate-200'
+          }`}
+        >
+          <Settings className="w-3.5 h-3.5" />
+          <span>Voice Settings</span>
         </button>
       </div>
 

@@ -1,4 +1,4 @@
-export type ViewMode = 'mission-control' | 'conversation-focus';
+export type ViewMode = 'mission-control' | 'conversation-focus' | 'settings';
 
 export type AssistantState = 'THINKING' | 'STREAMING' | 'COMPLETE' | 'ERROR';
 
@@ -8,6 +8,18 @@ export type WorkspaceDomain =
   | 'architecture'
   | 'development'
   | 'business';
+
+export type VoiceModeSetting = 'auto' | 'kokoro-only' | 'webspeech-only';
+
+export interface VoiceSettingsConfig {
+  providerMode: VoiceModeSetting;
+  selectedVoice: string; // 'af_bella' | 'af_sarah' | 'af_emma'
+  speechRate: number;    // 0.5 to 2.0 (default 1.0)
+  pitch: number;         // 0.5 to 1.5 (default 1.0)
+  volume: number;        // 0 to 1.0 (default 1.0)
+  autoPlay: boolean;     // true/false
+  autoFallback: boolean; // true/false
+}
 
 export interface SubsystemTelemetry {
   name: string;

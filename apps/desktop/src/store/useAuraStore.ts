@@ -3,8 +3,19 @@ import {
   AssistantState,
   ConversationMessage,
   ViewMode,
+  VoiceSettingsConfig,
   WorkspaceDomain,
 } from '../types';
+
+const defaultVoiceSettings: VoiceSettingsConfig = {
+  providerMode: 'auto',
+  selectedVoice: 'af_bella',
+  speechRate: 1.0,
+  pitch: 1.0,
+  volume: 1.0,
+  autoPlay: true,
+  autoFallback: true,
+};
 
 const initialMessages: ConversationMessage[] = [
   {
@@ -29,11 +40,13 @@ interface AuraState {
   presenceState: string;
   isMuted: boolean;
   isSpeaking: boolean;
+  voiceSettings: VoiceSettingsConfig;
   setViewMode: (mode: ViewMode) => void;
   setActiveDomain: (domain: WorkspaceDomain) => void;
   setAssistantState: (state: AssistantState, presence?: string) => void;
   toggleMute: () => void;
   setSpeaking: (isSpeaking: boolean) => void;
+  updateVoiceSettings: (partial: Partial<VoiceSettingsConfig>) => void;
   addMessage: (message: ConversationMessage) => void;
   appendChunkToMessage: (id: string, chunk: string, isDone?: boolean) => void;
   updateMessageStatus: (
@@ -53,6 +66,7 @@ export const useAuraStore = create<AuraState>((set) => ({
   presenceState: 'AURA is ready',
   isMuted: false,
   isSpeaking: false,
+  voiceSettings: defaultVoiceSettings,
   setViewMode: (mode) => set({ viewMode: mode }),
   setActiveDomain: (domain) => set({ activeDomain: domain }),
   setAssistantState: (assistantState, presenceState) =>
@@ -69,6 +83,10 @@ export const useAuraStore = create<AuraState>((set) => ({
     }),
   toggleMute: () => set((state) => ({ isMuted: !state.isMuted })),
   setSpeaking: (isSpeaking) => set({ isSpeaking }),
+  updateVoiceSettings: (partial) =>
+    set((state) => ({
+      voiceSettings: { ...state.voiceSettings, ...partial },
+    })),
   addMessage: (message) =>
     set((state) => ({ messages: [...state.messages, message] })),
   appendChunkToMessage: (id, chunk, isDone = false) =>

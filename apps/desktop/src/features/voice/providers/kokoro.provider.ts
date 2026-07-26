@@ -1,4 +1,4 @@
-import { ITTSProvider } from './tts.provider';
+import { ITTSProvider, TTSOptions } from './tts.provider';
 
 export class KokoroProvider implements ITTSProvider {
   readonly name = 'kokoro';
@@ -26,10 +26,13 @@ export class KokoroProvider implements ITTSProvider {
     }
   }
 
-  async speak(text: string, voice?: string): Promise<void> {
+  async speak(text: string, options?: TTSOptions): Promise<void> {
     this.stop();
 
-    const selectedVoice = voice || this.defaultVoice;
+    const selectedVoice = options?.voice || this.defaultVoice;
+    const speed = options?.rate || 1.0;
+    const volume = options?.volume ?? 1.0;
+
     const url = `${this.baseUrl}/v1/audio/speech`;
 
     const response = await fetch(url, {
@@ -39,7 +42,7 @@ export class KokoroProvider implements ITTSProvider {
         model: 'kokoro',
         input: text,
         voice: selectedVoice,
-        speed: 1.0,
+        speed,
         response_format: 'wav',
       }),
     });
@@ -54,6 +57,7 @@ export class KokoroProvider implements ITTSProvider {
 
     return new Promise((resolve) => {
       const audio = new Audio(objectUrl);
+      audio.volume = volume;
       this.activeAudio = audio;
 
       audio.onended = () => {

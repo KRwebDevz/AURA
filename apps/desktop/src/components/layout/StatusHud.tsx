@@ -2,12 +2,12 @@ import React from 'react';
 import { mockSystemTelemetry } from '../../services/mockApi';
 import { useAuraStore } from '../../store/useAuraStore';
 import { DesktopVoiceManager } from '../../features/voice/voice.manager';
-import { Activity, Cpu, Database, Globe, Mic, Target, Volume2, VolumeX } from 'lucide-react';
+import { Activity, Cpu, Database, Globe, Mic, Settings, Target, Volume2, VolumeX } from 'lucide-react';
 
 export const StatusHud: React.FC = () => {
   const telemetry = mockSystemTelemetry;
-  const { isMuted, isSpeaking, toggleMute } = useAuraStore();
-  const providerName = DesktopVoiceManager.getCurrentProviderName();
+  const { isMuted, isSpeaking, toggleMute, viewMode, setViewMode } = useAuraStore();
+  const voicePosture = DesktopVoiceManager.getVoiceStatus();
 
   return (
     <div className="h-7 bg-[#090C10] border-b border-[#1E2638]/60 px-4 flex items-center justify-between text-[10px] font-mono text-slate-500 select-none shrink-0 overflow-x-auto">
@@ -33,19 +33,30 @@ export const StatusHud: React.FC = () => {
 
         <span className="text-slate-700">•</span>
 
-        {/* Desktop Voice Manager Subsystem */}
-        <div className="flex items-center gap-1 opacity-80 hover:opacity-100 transition-opacity">
+        {/* Executive Voice Telemetry (Ready | Speaking | Muted | Offline) */}
+        <div className="flex items-center gap-1 opacity-90 hover:opacity-100 transition-opacity">
           <Mic className={`w-3 h-3 ${isSpeaking ? 'text-sky-400 animate-bounce' : 'text-slate-500'}`} />
           <span>Voice:</span>
-          {isMuted ? (
-            <span className="text-red-400 font-medium">MUTED</span>
-          ) : isSpeaking ? (
+          {isMuted || voicePosture === 'MUTED' ? (
+            <span className="text-red-400 font-medium flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-red-400 inline-block" />
+              Muted
+            </span>
+          ) : isSpeaking || voicePosture === 'SPEAKING' ? (
             <span className="text-sky-400 font-medium flex items-center gap-1">
-              <span className="w-1 h-1 rounded-full bg-sky-400 animate-ping inline-block" />
-              SPEAKING ({providerName})
+              <span className="w-1.5 h-1.5 rounded-full bg-sky-400 animate-ping inline-block" />
+              Speaking
+            </span>
+          ) : voicePosture === 'OFFLINE' ? (
+            <span className="text-slate-500 font-medium flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-slate-500 inline-block" />
+              Offline
             </span>
           ) : (
-            <span className="text-slate-400">READY</span>
+            <span className="text-emerald-400 font-medium flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block" />
+              Ready
+            </span>
           )}
         </div>
 
@@ -68,8 +79,22 @@ export const StatusHud: React.FC = () => {
         </div>
       </div>
 
-      {/* Right side: Mute toggle + Focus Token */}
-      <div className="flex items-center gap-4">
+      {/* Right side: Mute toggle + Settings Button + Focus Token */}
+      <div className="flex items-center gap-3">
+        {/* Settings Toggle Button */}
+        <button
+          onClick={() => setViewMode(viewMode === 'settings' ? 'mission-control' : 'settings')}
+          title="Open Voice Settings"
+          className={`flex items-center gap-1 px-2 py-0.5 rounded-xs border transition-all ${
+            viewMode === 'settings'
+              ? 'bg-sky-950/60 border-sky-500/60 text-sky-300'
+              : 'bg-[#0F141C] border-[#1E2638] text-slate-400 hover:text-slate-200 hover:border-slate-600'
+          }`}
+        >
+          <Settings className="w-3 h-3 text-sky-400" />
+          <span>SETTINGS</span>
+        </button>
+
         {/* Mute/Unmute Toggle Button */}
         <button
           onClick={toggleMute}

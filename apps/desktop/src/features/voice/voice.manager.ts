@@ -3,39 +3,82 @@ import { KokoroProvider } from './providers/kokoro.provider';
 import { WebSpeechProvider } from './providers/webspeech.provider';
 import { useAuraStore } from '../../store/useAuraStore';
 
+export type VoiceStatusPosture = 'READY' | 'SPEAKING' | 'MUTED' | 'OFFLINE';
+
 export class DesktopVoiceManager {
   private static kokoroProvider = new KokoroProvider();
   private static webSpeechProvider = new WebSpeechProvider();
-  private static currentProviderName = 'STANDBY';
+  private static currentPosture: VoiceStatusPosture = 'READY';
 
-  static getCurrentProviderName(): string {
-    return this.currentProviderName;
+  static getVoiceStatus(): VoiceStatusPosture {
+    const { isMuted, isSpeaking } = useAuraStore.getState();
+    if (isMuted) return 'MUTED';
+    if (isSpeaking) return 'SPEAKING';
+    return this.currentPosture;
   }
 
   static async speak(text: string): Promise<void> {
-    const { isMuted, setSpeaking } = useAuraStore.getState();
-    if (isMuted || !text.trim()) return;
+    const { isMuted, voiceSettings, setSpeaking } = useAuraStore.getState();
 
-    let selectedProvider: ITTSProvider = this.webSpeechProvider;
+    // 1. Immediately stop any currently playing speech (Interrupt safety)
+    this.stop();
 
-    // Check if local Kokoro engine is online
-    if (await this.kokoroProvider.isAvailable()) {
-      selectedProvider = this.kokoroProvider;
+    if (isMuted || !text.trim() || !voiceSettings.autoPlay) {
+      return;
     }
 
-    this.currentProviderName = selectedProvider.name.toUpperCase();
+    let selectedProvider: ITTSProvider | null = null;
+    const isKokoroOnline = await this.kokoroProvider.isAvailable();
+
+    if (voiceSettings.providerMode === 'kokoro-only') {
+      if (isKokoroOnline) {
+        selectedProvider = this.kokoroProvider;
+      } else {
+        this.currentPosture = 'OFFLINE';
+        return;
+      }
+    } else if (voiceSettings.providerMode === 'webspeech-only') {
+      selectedProvider = this.webSpeechProvider;
+    } else {
+      // Auto mode
+      if (isKokoroOnline) {
+        selectedProvider = this.kokoroProvider;
+      } else if (voiceSettings.autoFallback) {
+        selectedProvider = this.webSpeechProvider;
+      } else {
+        this.currentPosture = 'OFFLINE';
+        return;
+      }
+    }
+
+    this.currentPosture = 'SPEAKING';
 
     try {
       setSpeaking(true);
-      await selectedProvider.speak(text);
+      await selectedProvider.speak(text, {
+        voice: voiceSettings.selectedVoice,
+        rate: voiceSettings.speechRate,
+        pitch: voiceSettings.pitch,
+        volume: voiceSettings.volume,
+      });
     } catch {
-      // Fallback to WebSpeech if Kokoro synthesis fails
-      if (selectedProvider !== this.webSpeechProvider) {
-        this.currentProviderName = 'WEBSPEECH';
-        await this.webSpeechProvider.speak(text);
+      if (
+        selectedProvider !== this.webSpeechProvider &&
+        voiceSettings.autoFallback &&
+        voiceSettings.providerMode === 'auto'
+      ) {
+        await this.webSpeechProvider.speak(text, {
+          voice: voiceSettings.selectedVoice,
+          rate: voiceSettings.speechRate,
+          pitch: voiceSettings.pitch,
+          volume: voiceSettings.volume,
+        });
+      } else {
+        this.currentPosture = 'OFFLINE';
       }
     } finally {
       setSpeaking(false);
+      this.currentPosture = 'READY';
     }
   }
 

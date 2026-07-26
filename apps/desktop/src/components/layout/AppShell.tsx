@@ -4,6 +4,7 @@ import { StatusHud } from './StatusHud';
 import { CommandBar } from '../command/CommandBar';
 import { DailyBriefing } from '../mission-control/DailyBriefing';
 import { ConversationCanvas } from '../conversation/ConversationCanvas';
+import { VoiceSettings } from '../settings/VoiceSettings';
 import { useAuraStore } from '../../store/useAuraStore';
 import { mockBriefingData } from '../../services/mockApi';
 import { useConversation } from '../../features/conversation/hooks/useConversation';
@@ -25,18 +26,24 @@ export const AppShell: React.FC = () => {
       <StatusHud />
 
       {/* 3. Main Activity View Surface */}
-      <main className="flex-1 overflow-y-auto px-6 py-4 flex flex-col">
-        {viewMode === 'mission-control' ? (
-          <DailyBriefing
-            data={mockBriefingData}
-            onSelectPrompt={handleSelectPrompt}
-          />
+      <main className="flex-1 overflow-y-auto flex flex-col">
+        {viewMode === 'settings' ? (
+          <VoiceSettings />
+        ) : viewMode === 'mission-control' ? (
+          <div className="px-6 py-4 flex-1 flex flex-col overflow-y-auto">
+            <DailyBriefing
+              data={mockBriefingData}
+              onSelectPrompt={handleSelectPrompt}
+            />
+          </div>
         ) : (
-          <ConversationCanvas
-            messages={messages}
-            isThinking={isThinking}
-            presenceState={presenceState}
-          />
+          <div className="px-6 py-4 flex-1 flex flex-col overflow-y-auto">
+            <ConversationCanvas
+              messages={messages}
+              isThinking={isThinking}
+              presenceState={presenceState}
+            />
+          </div>
         )}
       </main>
 
