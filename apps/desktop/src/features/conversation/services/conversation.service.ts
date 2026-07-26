@@ -1,5 +1,6 @@
 import { ConversationApi } from '../../../services/api/conversation.api';
 import { ConversationMessage, StreamChunkPayload } from '../../../types';
+import { ConversationStreamClient } from './conversation.stream';
 
 export class ConversationFeatureService {
   static async sendUserMessage(
@@ -20,7 +21,7 @@ export class ConversationFeatureService {
         model: response.model || 'llama3.2',
         provider: response.provider || 'ollama',
       };
-    } catch (error) {
+    } catch {
       // PERSONA-001 Compliant Error Formatting
       return {
         id: `err-${Date.now()}`,
@@ -43,7 +44,13 @@ export class ConversationFeatureService {
     onChunk: (payload: StreamChunkPayload) => void,
     onError: (error: Error) => void,
     onComplete: () => void,
+    signal?: AbortSignal,
   ): void {
-    ConversationApi.streamMessage(userText, onChunk, onError, onComplete);
+    ConversationStreamClient.stream(userText, {
+      onChunk,
+      onError,
+      onComplete,
+      signal,
+    });
   }
 }

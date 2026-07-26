@@ -121,45 +121,87 @@ export class OllamaProvider implements IAIProvider {
 
   async *stream(request: AIChatRequest | AIGenerateRequest): AsyncIterable<string> {
     const model = request.model || this.defaultModel;
-    const url = `${this.baseUrl}/api/generate`;
+    const isChat = 'messages' in request && Array.isArray((request as AIChatRequest).messages) && (request as AIChatRequest).messages!.length > 0;
+    const url = isChat ? `${this.baseUrl}/api/chat` : `${this.baseUrl}/api/generate`;
+
+    const body: Record<string, unknown> = {
+      model,
+      options: request.options,
+      stream: true,
+    };
+
+    if (isChat) {
+      const chatReq = request as AIChatRequest;
+      const messages = [...(chatReq.messages || [])];
+      if (chatReq.system && !messages.some((m) => m.role === 'system')) {
+        messages.unshift({ role: 'system', content: chatReq.system });
+      }
+      if (chatReq.prompt) {
+        messages.push({ role: 'user', content: chatReq.prompt });
+      }
+      body.messages = messages;
+    } else {
+      body.prompt = request.prompt || '';
+      if (request.system) {
+        body.system = request.system;
+      }
+    }
 
     const response = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model,
-        prompt: request.prompt || '',
-        system: request.system,
-        options: request.options,
-        stream: true,
-      }),
+      body: JSON.stringify(body),
     });
 
     if (!response.ok || !response.body) {
       throw new Error(
-        `Ollama stream failed with HTTP status ${response.status}`,
+        `Ollama stream failed with HTTP status ${response.status}: ${response.statusText}`,
       );
     }
 
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
+    let buffer = '';
 
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
 
-      const chunk = decoder.decode(value, { stream: true });
-      const lines = chunk.split('\n').filter((l) => l.trim() !== '');
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
 
       for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed) continue;
+
         try {
-          const parsed = JSON.parse(line) as { response?: string };
-          if (parsed.response) {
-            yield parsed.response;
+          const parsed = JSON.parse(trimmed) as {
+            response?: string;
+            message?: { content?: string };
+          };
+          const textChunk = parsed.response ?? parsed.message?.content;
+          if (textChunk) {
+            yield textChunk;
           }
         } catch {
-          // ignore non-JSON line chunks
+          // Ignore non-JSON line chunks
         }
+      }
+    }
+
+    if (buffer.trim()) {
+      try {
+        const parsed = JSON.parse(buffer.trim()) as {
+          response?: string;
+          message?: { content?: string };
+        };
+        const textChunk = parsed.response ?? parsed.message?.content;
+        if (textChunk) {
+          yield textChunk;
+        }
+      } catch {
+        // Ignore incomplete tail
       }
     }
   }

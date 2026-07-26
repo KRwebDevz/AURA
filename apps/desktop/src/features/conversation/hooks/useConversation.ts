@@ -9,20 +9,42 @@ export function useConversation() {
     setViewMode,
     addMessage,
     appendChunkToMessage,
+    markMessageComplete,
     setAssistantState,
     assistantState,
     isThinking,
+    voiceSettings,
   } = useAuraStore();
 
   const fullAssistantTextRef = useRef('');
+  const activeAbortControllerRef = useRef<AbortController | null>(null);
+
+  const cancelGeneration = useCallback(() => {
+    if (activeAbortControllerRef.current) {
+      activeAbortControllerRef.current.abort();
+      activeAbortControllerRef.current = null;
+    }
+    // Instantly stop audio, clear speech queue & sentence processor
+    DesktopVoiceManager.stop();
+    setAssistantState('COMPLETE', 'AURA is ready');
+  }, [setAssistantState]);
 
   const sendMessage = useCallback(
     async (prompt: string) => {
       const trimmed = prompt.trim();
-      if (!trimmed || isThinking) return;
+      if (!trimmed || isThinking || assistantState === 'STREAMING') return;
 
       // Automatically switch to Conversation Focus Mode
       setViewMode('conversation-focus');
+
+      // Abort any lingering request & stop previous voice output
+      if (activeAbortControllerRef.current) {
+        activeAbortControllerRef.current.abort();
+      }
+      DesktopVoiceManager.stop();
+
+      const abortController = new AbortController();
+      activeAbortControllerRef.current = abortController;
 
       const userMsgId = `user-${Date.now()}`;
       const userMessage: ConversationMessage = {
@@ -62,10 +84,6 @@ export function useConversation() {
 
       let isFirstChunk = true;
 
-      const triggerVoiceSpeech = (text: string) => {
-        DesktopVoiceManager.speak(text);
-      };
-
       ConversationFeatureService.streamUserMessage(
         trimmed,
         (payload) => {
@@ -77,31 +95,67 @@ export function useConversation() {
           if (payload.chunk) {
             fullAssistantTextRef.current += payload.chunk;
             appendChunkToMessage(auraMsgId, payload.chunk, payload.done);
+
+            // Feed token chunk to live voice stream if enabled
+            if (voiceSettings.streamingVoice) {
+              DesktopVoiceManager.streamToken(payload.chunk);
+            }
           }
 
           if (payload.done) {
-            appendChunkToMessage(auraMsgId, '', true);
+            markMessageComplete(auraMsgId);
             setAssistantState('COMPLETE', 'AURA is ready');
-            triggerVoiceSpeech(fullAssistantTextRef.current);
+
+            if (voiceSettings.streamingVoice) {
+              DesktopVoiceManager.endStream();
+            } else {
+              DesktopVoiceManager.speak(fullAssistantTextRef.current);
+            }
           }
         },
         () => {
-          setAssistantState('ERROR', 'AURA system check required');
-          const errorMsg =
-            'Sir, I am unable to establish a connection with the AURA Kernel service at this time. All core local systems remain standing by.';
-          appendChunkToMessage(auraMsgId, errorMsg, true);
-          triggerVoiceSpeech(errorMsg);
+          if (!fullAssistantTextRef.current) {
+            setAssistantState('ERROR', 'AURA system check required');
+            const errorMsg =
+              'Sir, I am unable to establish a connection with the AURA Kernel service at this time. All core local systems remain standing by.';
+            appendChunkToMessage(auraMsgId, errorMsg, true);
+            if (!voiceSettings.streamingVoice) {
+              DesktopVoiceManager.speak(errorMsg);
+            }
+          } else {
+            // Partial response received - keep text, flush voice queue & mark complete
+            markMessageComplete(auraMsgId);
+            setAssistantState('COMPLETE', 'AURA is ready');
+            if (voiceSettings.streamingVoice) {
+              DesktopVoiceManager.endStream();
+            }
+          }
         },
         () => {
+          markMessageComplete(auraMsgId);
           setAssistantState('COMPLETE', 'AURA is ready');
+          if (voiceSettings.streamingVoice) {
+            DesktopVoiceManager.endStream();
+          }
         },
+        abortController.signal,
       );
     },
-    [addMessage, appendChunkToMessage, isThinking, setAssistantState, setViewMode],
+    [
+      addMessage,
+      appendChunkToMessage,
+      assistantState,
+      isThinking,
+      markMessageComplete,
+      setAssistantState,
+      setViewMode,
+      voiceSettings.streamingVoice,
+    ],
   );
 
   return {
     sendMessage,
+    cancelGeneration,
     isThinking,
     assistantState,
   };

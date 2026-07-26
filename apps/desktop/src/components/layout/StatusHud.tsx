@@ -1,13 +1,18 @@
 import React from 'react';
 import { mockSystemTelemetry } from '../../services/mockApi';
 import { useAuraStore } from '../../store/useAuraStore';
-import { DesktopVoiceManager } from '../../features/voice/voice.manager';
 import { Activity, Cpu, Database, Globe, Mic, Settings, Target, Volume2, VolumeX } from 'lucide-react';
 
 export const StatusHud: React.FC = () => {
   const telemetry = mockSystemTelemetry;
-  const { isMuted, isSpeaking, toggleMute, viewMode, setViewMode } = useAuraStore();
-  const voicePosture = DesktopVoiceManager.getVoiceStatus();
+  const { isMuted, isSpeaking, toggleMute, viewMode, setViewMode, voiceStatus } = useAuraStore();
+
+  // Derive display status: Muted > Speaking > voiceStatus
+  const displayStatus = isMuted
+    ? 'MUTED'
+    : isSpeaking
+      ? 'SPEAKING'
+      : voiceStatus;
 
   return (
     <div className="h-7 bg-[#090C10] border-b border-[#1E2638]/60 px-4 flex items-center justify-between text-[10px] font-mono text-slate-500 select-none shrink-0 overflow-x-auto">
@@ -35,19 +40,19 @@ export const StatusHud: React.FC = () => {
 
         {/* Executive Voice Telemetry (Ready | Speaking | Muted | Offline) */}
         <div className="flex items-center gap-1 opacity-90 hover:opacity-100 transition-opacity">
-          <Mic className={`w-3 h-3 ${isSpeaking ? 'text-sky-400 animate-bounce' : 'text-slate-500'}`} />
+          <Mic className={`w-3 h-3 ${displayStatus === 'SPEAKING' ? 'text-sky-400 animate-bounce' : 'text-slate-500'}`} />
           <span>Voice:</span>
-          {isMuted || voicePosture === 'MUTED' ? (
+          {displayStatus === 'MUTED' ? (
             <span className="text-red-400 font-medium flex items-center gap-1">
               <span className="w-1.5 h-1.5 rounded-full bg-red-400 inline-block" />
               Muted
             </span>
-          ) : isSpeaking || voicePosture === 'SPEAKING' ? (
+          ) : displayStatus === 'SPEAKING' ? (
             <span className="text-sky-400 font-medium flex items-center gap-1">
               <span className="w-1.5 h-1.5 rounded-full bg-sky-400 animate-ping inline-block" />
               Speaking
             </span>
-          ) : voicePosture === 'OFFLINE' ? (
+          ) : displayStatus === 'OFFLINE' ? (
             <span className="text-slate-500 font-medium flex items-center gap-1">
               <span className="w-1.5 h-1.5 rounded-full bg-slate-500 inline-block" />
               Offline

@@ -31,8 +31,9 @@ export class ConversationController {
     }
 
     res.setHeader('Content-Type', 'text/event-stream');
-    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Cache-Control', 'no-cache, no-transform');
     res.setHeader('Connection', 'keep-alive');
+    res.setHeader('X-Accel-Buffering', 'no');
     res.flushHeaders?.();
 
     try {
@@ -41,6 +42,7 @@ export class ConversationController {
 
       for await (const chunkPayload of stream) {
         res.write(`data: ${JSON.stringify(chunkPayload)}\n\n`);
+        (res as unknown as { flush?: () => void }).flush?.();
       }
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);

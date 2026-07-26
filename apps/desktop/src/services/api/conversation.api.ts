@@ -18,6 +18,7 @@ export class ConversationApi {
     onChunk: (payload: StreamChunkPayload) => void,
     onError: (error: Error) => void,
     onComplete: () => void,
+    signal?: AbortSignal,
   ): Promise<void> {
     try {
       const response = await fetch(`${API_BASE_URL}/conversation/stream`, {
@@ -26,6 +27,7 @@ export class ConversationApi {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ message }),
+        signal,
       });
 
       if (!response.ok || !response.body) {
@@ -39,6 +41,11 @@ export class ConversationApi {
       let buffer = '';
 
       while (true) {
+        if (signal?.aborted) {
+          onComplete();
+          return;
+        }
+
         const { done, value } = await reader.read();
         if (done) break;
 
@@ -72,6 +79,11 @@ export class ConversationApi {
 
       onComplete();
     } catch (error) {
+      if (signal?.aborted || (error instanceof Error && error.name === 'AbortError')) {
+        // Stream was explicitly aborted by user action - trigger complete
+        onComplete();
+        return;
+      }
       onError(error instanceof Error ? error : new Error(String(error)));
     }
   }

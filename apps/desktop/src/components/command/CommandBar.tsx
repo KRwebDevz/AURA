@@ -1,20 +1,20 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useConversation } from '../../features/conversation/hooks/useConversation';
-import { Command, CornerDownLeft, Loader2, Sparkles, Zap } from 'lucide-react';
+import { Command, CornerDownLeft, Loader2, Sparkles, Square, Zap } from 'lucide-react';
 
 export const CommandBar: React.FC = () => {
   const [input, setInput] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const { sendMessage, isThinking, assistantState } = useConversation();
+  const { sendMessage, cancelGeneration, isThinking, assistantState } = useConversation();
 
-  const isDisabled = isThinking || assistantState === 'STREAMING';
+  const isRequestActive = isThinking || assistantState === 'STREAMING';
 
   // Auto-focus Command Bar input on mount & after completion
   useEffect(() => {
-    if (!isDisabled) {
+    if (!isRequestActive) {
       textareaRef.current?.focus();
     }
-  }, [isDisabled]);
+  }, [isRequestActive]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -24,7 +24,11 @@ export const CommandBar: React.FC = () => {
   };
 
   const handleSend = async () => {
-    if (!input.trim() || isDisabled) return;
+    if (isRequestActive) {
+      cancelGeneration();
+      return;
+    }
+    if (!input.trim()) return;
     const textToSend = input;
     setInput('');
     await sendMessage(textToSend);
@@ -32,8 +36,8 @@ export const CommandBar: React.FC = () => {
   };
 
   const getPlaceholder = () => {
-    if (assistantState === 'THINKING') return 'AURA is analyzing request...';
-    if (assistantState === 'STREAMING') return 'AURA is streaming response...';
+    if (assistantState === 'THINKING') return 'AURA is analyzing request... (Press Stop to cancel)';
+    if (assistantState === 'STREAMING') return 'AURA is streaming response... (Press Stop to cancel)';
     return 'Ask AURA or type a command... (Press Enter to send, Shift+Enter for newline)';
   };
 
@@ -45,8 +49,8 @@ export const CommandBar: React.FC = () => {
           handleSend();
         }}
         className={`max-w-4xl mx-auto bg-[#0F141C] border rounded-md p-3 shadow-md flex items-end gap-3 transition-all ${
-          isDisabled
-            ? 'border-sky-500/40 opacity-70 cursor-not-allowed'
+          isRequestActive
+            ? 'border-sky-500/60 ring-1 ring-sky-500/20'
             : 'border-[#1E2638] focus-within:border-sky-400/80 focus-within:ring-1 focus-within:ring-sky-400/30'
         }`}
       >
@@ -57,39 +61,43 @@ export const CommandBar: React.FC = () => {
 
         <textarea
           ref={textareaRef}
-          disabled={isDisabled}
+          disabled={isRequestActive}
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
           rows={1}
           placeholder={getPlaceholder()}
-          className="flex-1 bg-transparent border-none outline-none text-xs text-slate-100 placeholder:text-slate-500 placeholder:text-xs resize-none max-h-32 py-1"
+          className="flex-1 bg-transparent border-none outline-none text-xs text-slate-100 placeholder:text-slate-500 placeholder:text-xs resize-none max-h-32 py-1 disabled:cursor-not-allowed"
         />
 
-        <button
-          type="submit"
-          disabled={!input.trim() || isDisabled}
-          aria-label="Send Command"
-          className="bg-sky-500/15 hover:bg-sky-500/25 disabled:opacity-40 text-sky-300 border border-sky-500/40 px-3 py-1.5 rounded-sm text-xs font-medium transition-all flex items-center gap-1.5 shrink-0"
-        >
-          {assistantState === 'THINKING' ? (
-            <>
-              <Loader2 className="w-3.5 h-3.5 animate-spin text-sky-400" />
-              <span className="hidden sm:inline font-mono">Thinking...</span>
-            </>
-          ) : assistantState === 'STREAMING' ? (
-            <>
-              <Zap className="w-3.5 h-3.5 animate-pulse text-sky-400" />
-              <span className="hidden sm:inline font-mono">Streaming...</span>
-            </>
-          ) : (
-            <>
-              <Sparkles className="w-3 h-3 text-sky-400" />
-              <span className="hidden sm:inline">Ask AURA</span>
-              <CornerDownLeft className="w-3.5 h-3.5" />
-            </>
-          )}
-        </button>
+        {isRequestActive ? (
+          <button
+            type="button"
+            onClick={cancelGeneration}
+            aria-label="Stop Generation"
+            title="Stop generation & speaking"
+            className="bg-red-950/40 hover:bg-red-900/60 text-red-300 border border-red-800/60 px-3 py-1.5 rounded-sm text-xs font-medium transition-all flex items-center gap-1.5 shrink-0"
+          >
+            {assistantState === 'THINKING' ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin text-red-400" />
+            ) : (
+              <Zap className="w-3.5 h-3.5 animate-pulse text-red-400" />
+            )}
+            <span className="hidden sm:inline font-mono">Stop</span>
+            <Square className="w-3 h-3 fill-current text-red-400" />
+          </button>
+        ) : (
+          <button
+            type="submit"
+            disabled={!input.trim()}
+            aria-label="Send Command"
+            className="bg-sky-500/15 hover:bg-sky-500/25 disabled:opacity-40 text-sky-300 border border-sky-500/40 px-3 py-1.5 rounded-sm text-xs font-medium transition-all flex items-center gap-1.5 shrink-0"
+          >
+            <Sparkles className="w-3 h-3 text-sky-400" />
+            <span className="hidden sm:inline">Ask AURA</span>
+            <CornerDownLeft className="w-3.5 h-3.5" />
+          </button>
+        )}
       </form>
     </div>
   );

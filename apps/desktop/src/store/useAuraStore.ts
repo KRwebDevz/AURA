@@ -2,8 +2,10 @@ import { create } from 'zustand';
 import {
   AssistantState,
   ConversationMessage,
+  KokoroVoice,
   ViewMode,
   VoiceSettingsConfig,
+  VoiceStatusPosture,
   WorkspaceDomain,
 } from '../types';
 
@@ -15,6 +17,7 @@ const defaultVoiceSettings: VoiceSettingsConfig = {
   volume: 1.0,
   autoPlay: true,
   autoFallback: true,
+  streamingVoice: true,
 };
 
 const initialMessages: ConversationMessage[] = [
@@ -41,18 +44,23 @@ interface AuraState {
   isMuted: boolean;
   isSpeaking: boolean;
   voiceSettings: VoiceSettingsConfig;
+  availableVoices: KokoroVoice[];
+  voiceStatus: VoiceStatusPosture;
   setViewMode: (mode: ViewMode) => void;
   setActiveDomain: (domain: WorkspaceDomain) => void;
   setAssistantState: (state: AssistantState, presence?: string) => void;
   toggleMute: () => void;
   setSpeaking: (isSpeaking: boolean) => void;
   updateVoiceSettings: (partial: Partial<VoiceSettingsConfig>) => void;
+  setAvailableVoices: (voices: KokoroVoice[]) => void;
+  setVoiceStatus: (status: VoiceStatusPosture) => void;
   addMessage: (message: ConversationMessage) => void;
   appendChunkToMessage: (id: string, chunk: string, isDone?: boolean) => void;
   updateMessageStatus: (
     id: string,
     status: 'sending' | 'sent' | 'error',
   ) => void;
+  markMessageComplete: (id: string) => void;
   setThinking: (isThinking: boolean, state?: string) => void;
   resetConversation: () => void;
 }
@@ -67,12 +75,14 @@ export const useAuraStore = create<AuraState>((set) => ({
   isMuted: false,
   isSpeaking: false,
   voiceSettings: defaultVoiceSettings,
+  availableVoices: [],
+  voiceStatus: 'OFFLINE',
   setViewMode: (mode) => set({ viewMode: mode }),
   setActiveDomain: (domain) => set({ activeDomain: domain }),
   setAssistantState: (assistantState, presenceState) =>
     set({
       assistantState,
-      isThinking: assistantState === 'THINKING' || assistantState === 'STREAMING',
+      isThinking: assistantState === 'THINKING',
       presenceState:
         presenceState ||
         (assistantState === 'THINKING'
@@ -87,6 +97,8 @@ export const useAuraStore = create<AuraState>((set) => ({
     set((state) => ({
       voiceSettings: { ...state.voiceSettings, ...partial },
     })),
+  setAvailableVoices: (voices) => set({ availableVoices: voices }),
+  setVoiceStatus: (status) => set({ voiceStatus: status }),
   addMessage: (message) =>
     set((state) => ({ messages: [...state.messages, message] })),
   appendChunkToMessage: (id, chunk, isDone = false) =>
@@ -106,7 +118,13 @@ export const useAuraStore = create<AuraState>((set) => ({
   updateMessageStatus: (id, status) =>
     set((state) => ({
       messages: state.messages.map((m) =>
-        m.id === id ? { ...m, status } : m,
+        m.id === id ? { ...m, status, isStreaming: status !== 'sending' ? false : m.isStreaming } : m,
+      ),
+    })),
+  markMessageComplete: (id) =>
+    set((state) => ({
+      messages: state.messages.map((m) =>
+        m.id === id ? { ...m, isStreaming: false, status: 'sent' } : m,
       ),
     })),
   setThinking: (isThinking, presenceState = 'AURA is analyzing...') =>
