@@ -5,6 +5,7 @@ import { LoggerManager } from '../platform/logging/logger.manager';
 import { IntentService } from '../intelligence/intent/intent.service';
 import { ContextBuilder } from '../intelligence/context/context.builder';
 import { PromptManager } from '../intelligence/prompt/prompt.manager';
+import { PromptRequest } from '../intelligence/prompt/prompt.request';
 import { ResponseValidator } from '../intelligence/validator/response.validator';
 import { ConversationMapper } from './conversation.mapper';
 import {
@@ -31,35 +32,65 @@ export class ConversationService {
   ): Promise<ConversationResponse> {
     const conversationId = randomUUID();
 
-    this.logger.debug(`Executing intelligence pipeline for conversation '${conversationId}'`, {
-      conversationId,
-      messageLength: request.message ? request.message.length : 0,
-    });
+    this.logger.debug(
+      `Executing intelligence pipeline for conversation '${conversationId}'`,
+      {
+        conversationId,
+        messageLength: request.message ? request.message.length : 0,
+      },
+    );
 
-    // 1. Intent Analysis
+    // 1. Pre-Generation Validation
+    const preValidation = this.responseValidator.validatePreGeneration(
+      request.message,
+    );
+    if (preValidation.canBypassLlm && preValidation.fallbackResponse) {
+      return this.mapper.toConversationResponse(
+        conversationId,
+        {
+          response: preValidation.fallbackResponse,
+          model: request.model || 'system',
+          done: true,
+        },
+        'system',
+      );
+    }
+
+    // 2. Capability & Domain Intent Analysis
     const intentResult = this.intentService.analyzeIntent(request.message);
 
-    // 2. Context Building
-    const context = await this.contextBuilder.buildContext(intentResult.intent);
+    // 3. Context Provider Aggregation
+    const context = await this.contextBuilder.buildContext(
+      intentResult.capability,
+      intentResult.domain,
+    );
 
-    // 3. Prompt Management
-    const systemPrompt = this.promptManager.generateSystemPrompt(context);
+    // 4. PromptRequest Payload Assembly
+    const promptRequest: PromptRequest = {
+      capability: intentResult.capability,
+      domain: intentResult.domain,
+      context,
+      userMessage: request.message,
+    };
 
-    // 4. AI Provider Invocation
+    const systemPrompt =
+      this.promptManager.generateSystemPrompt(promptRequest);
+
+    // 5. AI Provider Execution
     const aiResponse = await this.aiManager.chat({
       system: systemPrompt,
       prompt: request.message,
       model: request.model,
     });
 
-    // 5. Response Validation
-    const validationResult = this.responseValidator.validateResponse(
+    // 6. Post-Generation Validation
+    const postValidation = this.responseValidator.validatePostGeneration(
       aiResponse.response,
     );
 
     const finalAiResponse = {
       ...aiResponse,
-      response: validationResult.sanitizedResponse,
+      response: postValidation.sanitizedResponse,
     };
 
     return this.mapper.toConversationResponse(

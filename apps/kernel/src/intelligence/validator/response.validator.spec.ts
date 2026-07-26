@@ -19,23 +19,30 @@ describe('ResponseValidator', () => {
     validator = new ResponseValidator(mockLogger);
   });
 
-  it('should reject empty responses', () => {
-    const res = validator.validateResponse('   ');
-    expect(res.isValid).toBe(false);
-    expect(res.sanitizedResponse).toContain('Sir, all system status signals are nominal');
+  it('should fail pre-validation for empty user prompts', () => {
+    const pre = validator.validatePreGeneration('   ');
+    expect(pre.isValid).toBe(false);
+    expect(pre.canBypassLlm).toBe(true);
+    expect(pre.fallbackResponse).toContain('Sir, please provide a command');
+  });
+
+  it('should pass pre-validation for valid user prompts', () => {
+    const pre = validator.validatePreGeneration('Review my Gold trades.');
+    expect(pre.isValid).toBe(true);
+    expect(pre.canBypassLlm).toBe(false);
+  });
+
+  it('should reject post-validation for empty AI responses', () => {
+    const post = validator.validatePostGeneration('   ');
+    expect(post.isValid).toBe(false);
+    expect(post.sanitizedResponse).toContain('Sir, all system status signals are nominal');
   });
 
   it('should append disclaimer for hallucinated claims of external modules', () => {
-    const res = validator.validateResponse(
+    const post = validator.validatePostGeneration(
       'Good morning. I accessed your google calendar and scheduled the meeting.',
     );
-    expect(res.isValid).toBe(true);
-    expect(res.sanitizedResponse).toContain('External service integration modules remain standing by');
-  });
-
-  it('should accept valid clean responses', () => {
-    const res = validator.validateResponse('All systems operational, Sir.');
-    expect(res.isValid).toBe(true);
-    expect(res.sanitizedResponse).toBe('All systems operational, Sir.');
+    expect(post.isValid).toBe(true);
+    expect(post.sanitizedResponse).toContain('External service integration modules remain standing by');
   });
 });

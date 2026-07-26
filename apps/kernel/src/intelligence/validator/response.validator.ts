@@ -1,7 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import { LoggerManager } from '../../platform/logging/logger.manager';
 
-export interface ValidationResult {
+export interface PreValidationResult {
+  isValid: boolean;
+  canBypassLlm: boolean;
+  fallbackResponse?: string;
+  reason?: string;
+}
+
+export interface PostValidationResult {
   isValid: boolean;
   sanitizedResponse: string;
   reason?: string;
@@ -13,12 +20,32 @@ export class ResponseValidator {
     this.logger.setContext('ResponseValidator');
   }
 
-  validateResponse(rawResponse: string): ValidationResult {
+  validatePreGeneration(userMessage: string): PreValidationResult {
+    const trimmed = (userMessage || '').trim();
+
+    if (!trimmed) {
+      this.logger.warn('Pre-validation failed: User prompt is empty');
+      return {
+        isValid: false,
+        canBypassLlm: true,
+        fallbackResponse:
+          'Sir, please provide a command or prompt for me to execute.',
+        reason: 'User prompt is empty.',
+      };
+    }
+
+    return {
+      isValid: true,
+      canBypassLlm: false,
+    };
+  }
+
+  validatePostGeneration(rawResponse: string): PostValidationResult {
     const trimmed = (rawResponse || '').trim();
 
     // 1. Reject Empty Responses
     if (!trimmed) {
-      this.logger.warn('Rejected empty AI response');
+      this.logger.warn('Post-validation rejected empty AI response');
       return {
         isValid: false,
         sanitizedResponse:
@@ -41,7 +68,7 @@ export class ResponseValidator {
     );
 
     if (foundHallucinations.length > 0) {
-      this.logger.warn('Detected hallucinated module claim in AI response', {
+      this.logger.warn('Post-validation detected hallucinated module claim in AI response', {
         triggers: foundHallucinations,
       });
       return {

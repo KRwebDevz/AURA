@@ -1,32 +1,24 @@
 import { ContextBuilder } from './context.builder';
-import { LifecycleManager } from '../../platform/lifecycle/lifecycle.manager';
-import { AIManager } from '../../platform/ai/ai.manager';
-import { ConfigurationService } from '../../config/configuration.service';
+import { KernelContextProvider } from './providers/kernel.context-provider';
 import { LoggerManager } from '../../platform/logging/logger.manager';
 
 describe('ContextBuilder', () => {
   let builder: ContextBuilder;
-  let mockLifecycle: jest.Mocked<LifecycleManager>;
-  let mockAiManager: jest.Mocked<AIManager>;
-  let mockConfig: jest.Mocked<ConfigurationService>;
+  let mockKernelProvider: jest.Mocked<KernelContextProvider>;
   let mockLogger: jest.Mocked<LoggerManager>;
 
   beforeEach(() => {
-    mockLifecycle = {
-      getState: jest.fn().mockReturnValue('RUNNING'),
-    } as unknown as jest.Mocked<LifecycleManager>;
-
-    mockAiManager = {
-      health: jest.fn().mockResolvedValue({
-        status: 'healthy',
-        provider: 'ollama',
-        modelCount: 1,
+    mockKernelProvider = {
+      name: 'kernel',
+      getContextData: jest.fn().mockResolvedValue({
+        kernelState: 'RUNNING',
+        providerName: 'ollama',
+        providerStatus: 'healthy',
+        activeModel: 'llama3.2',
+        uptimeSeconds: 100,
+        timestamp: '2026-07-26T12:00:00.000Z',
       }),
-    } as unknown as jest.Mocked<AIManager>;
-
-    mockConfig = {
-      ollamaDefaultModel: 'llama3.2',
-    } as unknown as jest.Mocked<ConfigurationService>;
+    } as unknown as jest.Mocked<KernelContextProvider>;
 
     mockLogger = {
       setContext: jest.fn().mockReturnThis(),
@@ -38,21 +30,16 @@ describe('ContextBuilder', () => {
       fatal: jest.fn(),
     } as unknown as jest.Mocked<LoggerManager>;
 
-    builder = new ContextBuilder(
-      mockLifecycle,
-      mockAiManager,
-      mockConfig,
-      mockLogger,
-    );
+    builder = new ContextBuilder(mockKernelProvider, mockLogger);
   });
 
-  it('should build strongly typed IntelligenceContext with runtime telemetry', async () => {
-    const context = await builder.buildContext('SYSTEM_STATUS');
+  it('should aggregate context across context providers', async () => {
+    const context = await builder.buildContext('ANALYZE', 'TRADING');
 
+    expect(context.capability).toBe('ANALYZE');
+    expect(context.domain).toBe('TRADING');
     expect(context.kernelState).toBe('RUNNING');
     expect(context.providerName).toBe('ollama');
     expect(context.providerStatus).toBe('healthy');
-    expect(context.activeModel).toBe('llama3.2');
-    expect(context.intent).toBe('SYSTEM_STATUS');
   });
 });

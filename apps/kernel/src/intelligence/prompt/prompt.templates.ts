@@ -1,9 +1,11 @@
-import { IntelligenceContext } from '../context/context.types';
+import { PromptRequest } from './prompt.request';
 
 export function formatGroundedSystemPrompt(
   baseSystemPrompt: string,
-  context: IntelligenceContext,
+  request: PromptRequest,
 ): string {
+  const { capability, domain, context } = request;
+
   const contextBlock = `
 [REAL RUNTIME TELEMETRY]
 - Kernel State: ${context.kernelState}
@@ -11,33 +13,43 @@ export function formatGroundedSystemPrompt(
 - Active Model: ${context.activeModel}
 - Kernel Uptime: ${context.uptimeSeconds}s
 - System Timestamp: ${context.timestamp}
-- Detected Intent: ${context.intent}
+- Classified Intent: [Capability: ${capability}] [Domain: ${domain}]
 [END RUNTIME TELEMETRY]
 `;
 
   let intentDirective = '';
-  switch (context.intent) {
-    case 'SYSTEM_STATUS':
-      intentDirective =
-        'Direct Intent Instruction: The user is requesting system status. Provide a concise, dignified summary of operational readiness using the telemetry values above.';
+  switch (capability) {
+    case 'ANALYZE':
+      intentDirective = `Direct Capability Instruction: Perform an in-depth, executive analysis focused on the ${domain} domain.`;
       break;
-    case 'PLANNING':
-      intentDirective =
-        'Direct Intent Instruction: The user is discussing schedule or priorities. Provide clear, structured, executive recommendations.';
+    case 'PLAN':
+      intentDirective = `Direct Capability Instruction: Structure a clean, prioritized executive agenda tailored for ${domain}.`;
       break;
-    case 'DEVELOPMENT':
-      intentDirective =
-        'Direct Intent Instruction: The user is discussing code or architecture. Provide precise technical insights.';
+    case 'COMMAND':
+      intentDirective = `Direct Capability Instruction: Execute the requested operational action concisely with status feedback.`;
       break;
-    case 'MEMORY':
-      intentDirective =
-        'Direct Intent Instruction: Note that persistent memory store is currently standing by.';
+    case 'SEARCH':
+      intentDirective = `Direct Capability Instruction: Retrieve and report specific facts relevant to ${domain}.`;
+      break;
+    case 'CREATE':
+      intentDirective = `Direct Capability Instruction: Draft high-quality, executive-grade artifacts for ${domain}.`;
       break;
     default:
-      intentDirective =
-        'Direct Intent Instruction: Provide a direct, concise executive response.';
+      intentDirective = `Direct Capability Instruction: Provide a direct, concise executive response for ${domain}.`;
       break;
   }
 
-  return `${baseSystemPrompt}\n\n${contextBlock}\n${intentDirective}`;
+  const memoryBlock = request.memoryContext
+    ? `\n[MEMORY CONTEXT]\n${request.memoryContext}\n`
+    : '';
+
+  const workspaceBlock = request.workspaceContext
+    ? `\n[WORKSPACE CONTEXT]\n${request.workspaceContext}\n`
+    : '';
+
+  const rulesBlock = request.rules && request.rules.length > 0
+    ? `\n[ACTIVE OPERATIONAL RULES]\n${request.rules.map((r) => `- ${r}`).join('\n')}\n`
+    : '';
+
+  return `${baseSystemPrompt}\n${contextBlock}${memoryBlock}${workspaceBlock}${rulesBlock}\n${intentDirective}`;
 }

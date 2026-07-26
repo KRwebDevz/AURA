@@ -1,12 +1,21 @@
-export type IntentType =
-  | 'SYSTEM_STATUS'
-  | 'GENERAL_CHAT'
-  | 'PLANNING'
-  | 'MEMORY'
-  | 'DEVELOPMENT';
+export type IntentCapability =
+  | 'QUESTION'
+  | 'COMMAND'
+  | 'SEARCH'
+  | 'PLAN'
+  | 'ANALYZE'
+  | 'CREATE';
+
+export type DomainContext =
+  | 'TRADING'
+  | 'DEVELOPMENT'
+  | 'ARCHITECTURE'
+  | 'BUSINESS'
+  | 'PERSONAL';
 
 export interface IntentAnalysisResult {
-  intent: IntentType;
+  capability: IntentCapability;
+  domain: DomainContext;
   confidence: number;
   matchedKeywords: string[];
 }

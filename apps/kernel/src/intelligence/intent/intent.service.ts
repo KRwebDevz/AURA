@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { IntentAnalysisResult, IntentType } from './intent.types';
+import { DomainContext, IntentAnalysisResult, IntentCapability } from './intent.types';
 import { LoggerManager } from '../../platform/logging/logger.manager';
 
 @Injectable()
@@ -10,104 +10,110 @@ export class IntentService {
 
   analyzeIntent(userPrompt: string): IntentAnalysisResult {
     const text = userPrompt.toLowerCase().trim();
+    const matchedKeywords: string[] = [];
 
-    // 1. SYSTEM_STATUS
-    const statusKeywords = [
-      'status',
-      'health',
-      'operational',
-      'readiness',
-      'running',
-      'uptime',
-      'system check',
-      'kernel',
-    ];
-    const statusMatches = statusKeywords.filter((kw) => text.includes(kw));
-    if (statusMatches.length > 0) {
-      this.logger.debug('Classified intent as SYSTEM_STATUS', {
-        matches: statusMatches,
-      });
-      return {
-        intent: 'SYSTEM_STATUS',
-        confidence: 0.9,
-        matchedKeywords: statusMatches,
-      };
+    // 1. Determine Domain
+    let domain: DomainContext = 'PERSONAL';
+
+    if (
+      text.includes('trade') ||
+      text.includes('trading') ||
+      text.includes('nifty') ||
+      text.includes('gold') ||
+      text.includes('market')
+    ) {
+      domain = 'TRADING';
+      matchedKeywords.push('trading');
+    } else if (
+      text.includes('code') ||
+      text.includes('nest') ||
+      text.includes('vite') ||
+      text.includes('typescript') ||
+      text.includes('git') ||
+      text.includes('bug') ||
+      text.includes('build')
+    ) {
+      domain = 'DEVELOPMENT';
+      matchedKeywords.push('development');
+    } else if (
+      text.includes('architecture') ||
+      text.includes('capgemini') ||
+      text.includes('design') ||
+      text.includes('schema') ||
+      text.includes('diagram')
+    ) {
+      domain = 'ARCHITECTURE';
+      matchedKeywords.push('architecture');
+    } else if (
+      text.includes('sutr') ||
+      text.includes('quotation') ||
+      text.includes('drawing') ||
+      text.includes('client') ||
+      text.includes('business')
+    ) {
+      domain = 'BUSINESS';
+      matchedKeywords.push('business');
     }
 
-    // 2. PLANNING
-    const planningKeywords = [
-      'plan',
-      'schedule',
-      'agenda',
-      'task',
-      'priority',
-      'todo',
-      'calendar',
-      'meeting',
-    ];
-    const planningMatches = planningKeywords.filter((kw) => text.includes(kw));
-    if (planningMatches.length > 0) {
-      this.logger.debug('Classified intent as PLANNING', {
-        matches: planningMatches,
-      });
-      return {
-        intent: 'PLANNING',
-        confidence: 0.85,
-        matchedKeywords: planningMatches,
-      };
+    // 2. Determine Capability
+    let capability: IntentCapability = 'QUESTION';
+
+    if (
+      text.includes('review') ||
+      text.includes('analyze') ||
+      text.includes('eval') ||
+      text.includes('compare') ||
+      text.includes('report')
+    ) {
+      capability = 'ANALYZE';
+      matchedKeywords.push('analyze');
+    } else if (
+      text.includes('plan') ||
+      text.includes('schedule') ||
+      text.includes('agenda') ||
+      text.includes('prioritize')
+    ) {
+      capability = 'PLAN';
+      matchedKeywords.push('plan');
+    } else if (
+      text.includes('find') ||
+      text.includes('search') ||
+      text.includes('lookup') ||
+      text.includes('where')
+    ) {
+      capability = 'SEARCH';
+      matchedKeywords.push('search');
+    } else if (
+      text.includes('create') ||
+      text.includes('generate') ||
+      text.includes('draft') ||
+      text.includes('write')
+    ) {
+      capability = 'CREATE';
+      matchedKeywords.push('create');
+    } else if (
+      text.includes('run') ||
+      text.includes('execute') ||
+      text.includes('start') ||
+      text.includes('stop') ||
+      text.includes('status') ||
+      text.includes('health')
+    ) {
+      capability = 'COMMAND';
+      matchedKeywords.push('command');
     }
 
-    // 3. DEVELOPMENT
-    const devKeywords = [
-      'code',
-      'architecture',
-      'build',
-      'debug',
-      'git',
-      'monorepo',
-      'typescript',
-      'nest',
-      'vite',
-    ];
-    const devMatches = devKeywords.filter((kw) => text.includes(kw));
-    if (devMatches.length > 0) {
-      this.logger.debug('Classified intent as DEVELOPMENT', {
-        matches: devMatches,
-      });
-      return {
-        intent: 'DEVELOPMENT',
-        confidence: 0.85,
-        matchedKeywords: devMatches,
-      };
-    }
+    this.logger.debug('Classified capability and domain intent', {
+      capability,
+      domain,
+      matchedKeywords,
+    });
 
-    // 4. MEMORY
-    const memoryKeywords = [
-      'remember',
-      'memory',
-      'recall',
-      'history',
-      'note',
-      'earlier',
-    ];
-    const memoryMatches = memoryKeywords.filter((kw) => text.includes(kw));
-    if (memoryMatches.length > 0) {
-      this.logger.debug('Classified intent as MEMORY', {
-        matches: memoryMatches,
-      });
-      return {
-        intent: 'MEMORY',
-        confidence: 0.8,
-        matchedKeywords: memoryMatches,
-      };
-    }
-
-    // Default: GENERAL_CHAT
-    this.logger.debug('Classified intent as GENERAL_CHAT');
     return {
-      intent: 'GENERAL_CHAT',
-      confidence: 0.7,
-      matchedKeywords: [],
+      capability,
+      domain,
+      confidence: 0.85,
+      matchedKeywords,
     };
   }
 }

@@ -19,25 +19,21 @@ describe('IntentService', () => {
     service = new IntentService(mockLogger);
   });
 
-  it('should classify status prompts as SYSTEM_STATUS', () => {
-    const res = service.analyzeIntent('AURA, report system status.');
-    expect(res.intent).toBe('SYSTEM_STATUS');
-    expect(res.matchedKeywords).toContain('status');
+  it('should classify "Review my Gold trades." as ANALYZE capability and TRADING domain', () => {
+    const res = service.analyzeIntent('Review my Gold trades.');
+    expect(res.capability).toBe('ANALYZE');
+    expect(res.domain).toBe('TRADING');
   });
 
-  it('should classify schedule prompts as PLANNING', () => {
-    const res = service.analyzeIntent('Review today agenda and schedule.');
-    expect(res.intent).toBe('PLANNING');
-    expect(res.matchedKeywords).toContain('schedule');
+  it('should classify code questions as QUESTION capability and DEVELOPMENT domain', () => {
+    const res = service.analyzeIntent('Explain how NestJS dependency injection works in this code.');
+    expect(res.capability).toBe('QUESTION');
+    expect(res.domain).toBe('DEVELOPMENT');
   });
 
-  it('should classify code prompts as DEVELOPMENT', () => {
-    const res = service.analyzeIntent('Explain the architecture of this typescript module.');
-    expect(res.intent).toBe('DEVELOPMENT');
-  });
-
-  it('should fallback to GENERAL_CHAT for conversational text', () => {
-    const res = service.analyzeIntent('Good morning AURA');
-    expect(res.intent).toBe('GENERAL_CHAT');
+  it('should classify schedule prompts as PLAN capability and PERSONAL domain', () => {
+    const res = service.analyzeIntent('Plan my schedule for tomorrow morning.');
+    expect(res.capability).toBe('PLAN');
+    expect(res.domain).toBe('PERSONAL');
   });
 });

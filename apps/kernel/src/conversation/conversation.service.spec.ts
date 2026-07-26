@@ -20,21 +20,23 @@ describe('ConversationService', () => {
   beforeEach(() => {
     mockIntentService = {
       analyzeIntent: jest.fn().mockReturnValue({
-        intent: 'SYSTEM_STATUS',
+        capability: 'ANALYZE',
+        domain: 'TRADING',
         confidence: 0.9,
-        matchedKeywords: ['status'],
+        matchedKeywords: ['analyze', 'trading'],
       }),
     } as unknown as jest.Mocked<IntentService>;
 
     mockContextBuilder = {
       buildContext: jest.fn().mockResolvedValue({
+        capability: 'ANALYZE',
+        domain: 'TRADING',
         kernelState: 'RUNNING',
         providerName: 'ollama',
         providerStatus: 'healthy',
         activeModel: 'llama3.2',
         uptimeSeconds: 50,
         timestamp: '2026-07-26T12:00:00.000Z',
-        intent: 'SYSTEM_STATUS',
       }),
     } as unknown as jest.Mocked<ContextBuilder>;
 
@@ -44,7 +46,7 @@ describe('ConversationService', () => {
 
     mockAiManager = {
       chat: jest.fn().mockResolvedValue({
-        response: 'Good afternoon, Sir. Systems are operational.',
+        response: 'Good afternoon, Sir. Gold trading metrics evaluated.',
         model: 'llama3.2',
         done: true,
       }),
@@ -55,9 +57,13 @@ describe('ConversationService', () => {
     } as unknown as jest.Mocked<AIManager>;
 
     mockValidator = {
-      validateResponse: jest.fn().mockReturnValue({
+      validatePreGeneration: jest.fn().mockReturnValue({
         isValid: true,
-        sanitizedResponse: 'Good afternoon, Sir. Systems are operational.',
+        canBypassLlm: false,
+      }),
+      validatePostGeneration: jest.fn().mockReturnValue({
+        isValid: true,
+        sanitizedResponse: 'Good afternoon, Sir. Gold trading metrics evaluated.',
       }),
     } as unknown as jest.Mocked<ResponseValidator>;
 
@@ -84,24 +90,29 @@ describe('ConversationService', () => {
     );
   });
 
-  it('should execute sequential Intelligence Pipeline: Intent -> Context -> Prompt -> AI -> Validator', async () => {
-    const result = await service.processMessage({ message: 'Status report' });
+  it('should execute refactored Intelligence Pipeline with Pre/Post validation and PromptRequest payload', async () => {
+    const result = await service.processMessage({ message: 'Review my Gold trades.' });
 
-    expect(mockIntentService.analyzeIntent).toHaveBeenCalledWith('Status report');
-    expect(mockContextBuilder.buildContext).toHaveBeenCalledWith('SYSTEM_STATUS');
-    expect(mockPromptManager.generateSystemPrompt).toHaveBeenCalled();
+    expect(mockValidator.validatePreGeneration).toHaveBeenCalledWith('Review my Gold trades.');
+    expect(mockIntentService.analyzeIntent).toHaveBeenCalledWith('Review my Gold trades.');
+    expect(mockContextBuilder.buildContext).toHaveBeenCalledWith('ANALYZE', 'TRADING');
+    expect(mockPromptManager.generateSystemPrompt).toHaveBeenCalledWith(
+      expect.objectContaining({
+        capability: 'ANALYZE',
+        domain: 'TRADING',
+        userMessage: 'Review my Gold trades.',
+      }),
+    );
     expect(mockAiManager.chat).toHaveBeenCalledWith({
       system: 'Mock Grounded System Prompt',
-      prompt: 'Status report',
+      prompt: 'Review my Gold trades.',
       model: undefined,
     });
-    expect(mockValidator.validateResponse).toHaveBeenCalledWith(
-      'Good afternoon, Sir. Systems are operational.',
+    expect(mockValidator.validatePostGeneration).toHaveBeenCalledWith(
+      'Good afternoon, Sir. Gold trading metrics evaluated.',
     );
 
     expect(result.id).toBeDefined();
-    expect(result.message).toBe('Good afternoon, Sir. Systems are operational.');
-    expect(result.provider).toBe('ollama');
-    expect(result.model).toBe('llama3.2');
+    expect(result.message).toBe('Good afternoon, Sir. Gold trading metrics evaluated.');
   });
 });

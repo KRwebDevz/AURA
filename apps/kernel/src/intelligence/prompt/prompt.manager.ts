@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { IntelligenceContext } from '../context/context.types';
+import { PromptRequest } from './prompt.request';
 import { formatGroundedSystemPrompt } from './prompt.templates';
 import { PersonaManager } from '../../platform/persona/persona.manager';
 import { LoggerManager } from '../../platform/logging/logger.manager';
@@ -13,15 +13,14 @@ export class PromptManager {
     this.logger.setContext('PromptManager');
   }
 
-  generateSystemPrompt(
-    context: IntelligenceContext,
-    personaId?: string,
-  ): string {
-    const basePersonaPrompt = this.personaManager.getSystemPrompt(personaId);
-    const finalPrompt = formatGroundedSystemPrompt(basePersonaPrompt, context);
+  generateSystemPrompt(request: PromptRequest): string {
+    const basePersonaPrompt = this.personaManager.getSystemPrompt(
+      request.personaId,
+    );
+    const finalPrompt = formatGroundedSystemPrompt(basePersonaPrompt, request);
 
     this.logger.debug(
-      `Generated grounded system prompt for intent '${context.intent}'`,
+      `Generated grounded system prompt [Capability: ${request.capability}] [Domain: ${request.domain}]`,
       {
         promptLength: finalPrompt.length,
       },
