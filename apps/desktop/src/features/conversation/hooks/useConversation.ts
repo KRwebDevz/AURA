@@ -1,8 +1,7 @@
 import { useCallback, useRef } from 'react';
 import { useAuraStore } from '../../../store/useAuraStore';
 import { ConversationFeatureService } from '../services/conversation.service';
-import { VoiceApi } from '../../../services/api/voice.api';
-import { AudioPlayerService } from '../../voice/services/audio.player';
+import { DesktopVoiceManager } from '../../voice/voice.manager';
 import { ConversationMessage } from '../../../types';
 
 export function useConversation() {
@@ -13,8 +12,6 @@ export function useConversation() {
     setAssistantState,
     assistantState,
     isThinking,
-    isMuted,
-    setSpeaking,
   } = useAuraStore();
 
   const fullAssistantTextRef = useRef('');
@@ -65,20 +62,8 @@ export function useConversation() {
 
       let isFirstChunk = true;
 
-      const triggerVoiceSynthesis = async (text: string) => {
-        const state = useAuraStore.getState();
-        if (state.isMuted || !text.trim()) return;
-
-        try {
-          const audioBuffer = await VoiceApi.synthesize(text);
-          await AudioPlayerService.playWavBuffer(
-            audioBuffer,
-            () => setSpeaking(true),
-            () => setSpeaking(false),
-          );
-        } catch {
-          setSpeaking(false);
-        }
+      const triggerVoiceSpeech = (text: string) => {
+        DesktopVoiceManager.speak(text);
       };
 
       ConversationFeatureService.streamUserMessage(
@@ -97,7 +82,7 @@ export function useConversation() {
           if (payload.done) {
             appendChunkToMessage(auraMsgId, '', true);
             setAssistantState('COMPLETE', 'AURA is ready');
-            triggerVoiceSynthesis(fullAssistantTextRef.current);
+            triggerVoiceSpeech(fullAssistantTextRef.current);
           }
         },
         () => {
@@ -105,22 +90,14 @@ export function useConversation() {
           const errorMsg =
             'Sir, I am unable to establish a connection with the AURA Kernel service at this time. All core local systems remain standing by.';
           appendChunkToMessage(auraMsgId, errorMsg, true);
-          triggerVoiceSynthesis(errorMsg);
+          triggerVoiceSpeech(errorMsg);
         },
         () => {
           setAssistantState('COMPLETE', 'AURA is ready');
         },
       );
     },
-    [
-      addMessage,
-      appendChunkToMessage,
-      isMuted,
-      isThinking,
-      setAssistantState,
-      setSpeaking,
-      setViewMode,
-    ],
+    [addMessage, appendChunkToMessage, isThinking, setAssistantState, setViewMode],
   );
 
   return {

@@ -1,11 +1,13 @@
 import React from 'react';
 import { mockSystemTelemetry } from '../../services/mockApi';
 import { useAuraStore } from '../../store/useAuraStore';
+import { DesktopVoiceManager } from '../../features/voice/voice.manager';
 import { Activity, Cpu, Database, Globe, Mic, Target, Volume2, VolumeX } from 'lucide-react';
 
 export const StatusHud: React.FC = () => {
   const telemetry = mockSystemTelemetry;
   const { isMuted, isSpeaking, toggleMute } = useAuraStore();
+  const providerName = DesktopVoiceManager.getCurrentProviderName();
 
   return (
     <div className="h-7 bg-[#090C10] border-b border-[#1E2638]/60 px-4 flex items-center justify-between text-[10px] font-mono text-slate-500 select-none shrink-0 overflow-x-auto">
@@ -31,7 +33,7 @@ export const StatusHud: React.FC = () => {
 
         <span className="text-slate-700">•</span>
 
-        {/* Voice Subsystem */}
+        {/* Desktop Voice Manager Subsystem */}
         <div className="flex items-center gap-1 opacity-80 hover:opacity-100 transition-opacity">
           <Mic className={`w-3 h-3 ${isSpeaking ? 'text-sky-400 animate-bounce' : 'text-slate-500'}`} />
           <span>Voice:</span>
@@ -40,10 +42,10 @@ export const StatusHud: React.FC = () => {
           ) : isSpeaking ? (
             <span className="text-sky-400 font-medium flex items-center gap-1">
               <span className="w-1 h-1 rounded-full bg-sky-400 animate-ping inline-block" />
-              SPEAKING (KOKORO)
+              SPEAKING ({providerName})
             </span>
           ) : (
-            <span className="text-slate-400">STANDBY</span>
+            <span className="text-slate-400">READY</span>
           )}
         </div>
 
