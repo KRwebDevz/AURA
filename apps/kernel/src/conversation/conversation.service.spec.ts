@@ -1,30 +1,65 @@
 import { AIManager } from '../platform/ai/ai.manager';
 import { LoggerManager } from '../platform/logging/logger.manager';
-import { PersonaManager } from '../platform/persona/persona.manager';
+import { IntentService } from '../intelligence/intent/intent.service';
+import { ContextBuilder } from '../intelligence/context/context.builder';
+import { PromptManager } from '../intelligence/prompt/prompt.manager';
+import { ResponseValidator } from '../intelligence/validator/response.validator';
 import { ConversationMapper } from './conversation.mapper';
 import { ConversationService } from './conversation.service';
 
 describe('ConversationService', () => {
+  let mockIntentService: jest.Mocked<IntentService>;
+  let mockContextBuilder: jest.Mocked<ContextBuilder>;
+  let mockPromptManager: jest.Mocked<PromptManager>;
   let mockAiManager: jest.Mocked<AIManager>;
-  let mockPersonaManager: jest.Mocked<PersonaManager>;
+  let mockValidator: jest.Mocked<ResponseValidator>;
   let mapper: ConversationMapper;
   let mockLogger: jest.Mocked<LoggerManager>;
   let service: ConversationService;
 
   beforeEach(() => {
+    mockIntentService = {
+      analyzeIntent: jest.fn().mockReturnValue({
+        intent: 'SYSTEM_STATUS',
+        confidence: 0.9,
+        matchedKeywords: ['status'],
+      }),
+    } as unknown as jest.Mocked<IntentService>;
+
+    mockContextBuilder = {
+      buildContext: jest.fn().mockResolvedValue({
+        kernelState: 'RUNNING',
+        providerName: 'ollama',
+        providerStatus: 'healthy',
+        activeModel: 'llama3.2',
+        uptimeSeconds: 50,
+        timestamp: '2026-07-26T12:00:00.000Z',
+        intent: 'SYSTEM_STATUS',
+      }),
+    } as unknown as jest.Mocked<ContextBuilder>;
+
+    mockPromptManager = {
+      generateSystemPrompt: jest.fn().mockReturnValue('Mock Grounded System Prompt'),
+    } as unknown as jest.Mocked<PromptManager>;
+
     mockAiManager = {
-      chat: jest.fn(),
+      chat: jest.fn().mockResolvedValue({
+        response: 'Good afternoon, Sir. Systems are operational.',
+        model: 'llama3.2',
+        done: true,
+      }),
       generate: jest.fn(),
       stream: jest.fn(),
       health: jest.fn(),
       getModels: jest.fn(),
     } as unknown as jest.Mocked<AIManager>;
 
-    mockPersonaManager = {
-      getSystemPrompt: jest.fn().mockReturnValue('Mock System Prompt'),
-      getPersona: jest.fn(),
-      getDefaultPersona: jest.fn(),
-    } as unknown as jest.Mocked<PersonaManager>;
+    mockValidator = {
+      validateResponse: jest.fn().mockReturnValue({
+        isValid: true,
+        sanitizedResponse: 'Good afternoon, Sir. Systems are operational.',
+      }),
+    } as unknown as jest.Mocked<ResponseValidator>;
 
     mapper = new ConversationMapper();
 
@@ -39,32 +74,33 @@ describe('ConversationService', () => {
     } as unknown as jest.Mocked<LoggerManager>;
 
     service = new ConversationService(
+      mockIntentService,
+      mockContextBuilder,
+      mockPromptManager,
       mockAiManager,
-      mockPersonaManager,
+      mockValidator,
       mapper,
       mockLogger,
     );
   });
 
-  it('should process user message with PersonaManager system prompt and return mapped DTO', async () => {
-    mockAiManager.chat.mockResolvedValue({
-      response: 'Good afternoon, Sir. I am ready to assist you.',
-      model: 'llama3.2',
-      done: true,
-    });
-
+  it('should execute sequential Intelligence Pipeline: Intent -> Context -> Prompt -> AI -> Validator', async () => {
     const result = await service.processMessage({ message: 'Status report' });
 
-    expect(mockPersonaManager.getSystemPrompt).toHaveBeenCalled();
+    expect(mockIntentService.analyzeIntent).toHaveBeenCalledWith('Status report');
+    expect(mockContextBuilder.buildContext).toHaveBeenCalledWith('SYSTEM_STATUS');
+    expect(mockPromptManager.generateSystemPrompt).toHaveBeenCalled();
     expect(mockAiManager.chat).toHaveBeenCalledWith({
-      system: 'Mock System Prompt',
+      system: 'Mock Grounded System Prompt',
       prompt: 'Status report',
       model: undefined,
     });
+    expect(mockValidator.validateResponse).toHaveBeenCalledWith(
+      'Good afternoon, Sir. Systems are operational.',
+    );
 
     expect(result.id).toBeDefined();
-    expect(typeof result.id).toBe('string');
-    expect(result.message).toBe('Good afternoon, Sir. I am ready to assist you.');
+    expect(result.message).toBe('Good afternoon, Sir. Systems are operational.');
     expect(result.provider).toBe('ollama');
     expect(result.model).toBe('llama3.2');
   });
