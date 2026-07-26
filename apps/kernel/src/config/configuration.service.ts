@@ -51,6 +51,14 @@ export class ConfigurationService {
     return this.config.ollamaDefaultModel;
   }
 
+  get kokoroBaseUrl(): string {
+    return this.config.kokoroBaseUrl;
+  }
+
+  get kokoroDefaultVoice(): string {
+    return this.config.kokoroDefaultVoice;
+  }
+
   get isDevelopment(): boolean {
     return this.config.environment === 'development';
   }

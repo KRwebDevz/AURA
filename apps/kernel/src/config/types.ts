@@ -10,6 +10,8 @@ export interface EnvironmentVariables {
   LOCALE: string;
   OLLAMA_BASE_URL: string;
   OLLAMA_DEFAULT_MODEL: string;
+  KOKORO_BASE_URL: string;
+  KOKORO_DEFAULT_VOICE: string;
 }
 
 export interface AppConfig {
@@ -22,4 +24,6 @@ export interface AppConfig {
   locale: string;
   ollamaBaseUrl: string;
   ollamaDefaultModel: string;
+  kokoroBaseUrl: string;
+  kokoroDefaultVoice: string;
 }

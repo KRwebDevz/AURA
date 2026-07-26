@@ -20,6 +20,8 @@ export const envSchema = z.object({
   LOCALE: z.string().default(DEFAULT_CONFIG.LOCALE),
   OLLAMA_BASE_URL: z.string().default(DEFAULT_CONFIG.OLLAMA_BASE_URL),
   OLLAMA_DEFAULT_MODEL: z.string().default(DEFAULT_CONFIG.OLLAMA_DEFAULT_MODEL),
+  KOKORO_BASE_URL: z.string().default(DEFAULT_CONFIG.KOKORO_BASE_URL),
+  KOKORO_DEFAULT_VOICE: z.string().default(DEFAULT_CONFIG.KOKORO_DEFAULT_VOICE),
 });
 
 export function validateEnv(

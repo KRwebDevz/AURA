@@ -17,5 +17,7 @@ export default registerAs(CONFIG_KEY, (): AppConfig => {
     locale: env.LOCALE,
     ollamaBaseUrl: env.OLLAMA_BASE_URL,
     ollamaDefaultModel: env.OLLAMA_DEFAULT_MODEL,
+    kokoroBaseUrl: env.KOKORO_BASE_URL,
+    kokoroDefaultVoice: env.KOKORO_DEFAULT_VOICE,
   };
 });

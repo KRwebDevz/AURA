@@ -9,4 +9,6 @@ export const DEFAULT_CONFIG = {
   LOCALE: 'en-IN',
   OLLAMA_BASE_URL: 'http://localhost:11434',
   OLLAMA_DEFAULT_MODEL: 'llama3.2',
+  KOKORO_BASE_URL: 'http://localhost:8880',
+  KOKORO_DEFAULT_VOICE: 'af_bella',
 } as const;

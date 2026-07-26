@@ -1,6 +1,8 @@
-import { useCallback } from 'react';
+import { useCallback, useRef } from 'react';
 import { useAuraStore } from '../../../store/useAuraStore';
 import { ConversationFeatureService } from '../services/conversation.service';
+import { VoiceApi } from '../../../services/api/voice.api';
+import { AudioPlayerService } from '../../voice/services/audio.player';
 import { ConversationMessage } from '../../../types';
 
 export function useConversation() {
@@ -11,7 +13,11 @@ export function useConversation() {
     setAssistantState,
     assistantState,
     isThinking,
+    isMuted,
+    setSpeaking,
   } = useAuraStore();
+
+  const fullAssistantTextRef = useRef('');
 
   const sendMessage = useCallback(
     async (prompt: string) => {
@@ -55,8 +61,25 @@ export function useConversation() {
       };
 
       addMessage(placeholderAssistantMsg);
+      fullAssistantTextRef.current = '';
 
       let isFirstChunk = true;
+
+      const triggerVoiceSynthesis = async (text: string) => {
+        const state = useAuraStore.getState();
+        if (state.isMuted || !text.trim()) return;
+
+        try {
+          const audioBuffer = await VoiceApi.synthesize(text);
+          await AudioPlayerService.playWavBuffer(
+            audioBuffer,
+            () => setSpeaking(true),
+            () => setSpeaking(false),
+          );
+        } catch {
+          setSpeaking(false);
+        }
+      };
 
       ConversationFeatureService.streamUserMessage(
         trimmed,
@@ -67,28 +90,37 @@ export function useConversation() {
           }
 
           if (payload.chunk) {
+            fullAssistantTextRef.current += payload.chunk;
             appendChunkToMessage(auraMsgId, payload.chunk, payload.done);
           }
 
           if (payload.done) {
             appendChunkToMessage(auraMsgId, '', true);
             setAssistantState('COMPLETE', 'AURA is ready');
+            triggerVoiceSynthesis(fullAssistantTextRef.current);
           }
         },
         () => {
           setAssistantState('ERROR', 'AURA system check required');
-          appendChunkToMessage(
-            auraMsgId,
-            'Sir, I am unable to establish a connection with the AURA Kernel service at this time. All core local systems remain standing by.',
-            true,
-          );
+          const errorMsg =
+            'Sir, I am unable to establish a connection with the AURA Kernel service at this time. All core local systems remain standing by.';
+          appendChunkToMessage(auraMsgId, errorMsg, true);
+          triggerVoiceSynthesis(errorMsg);
         },
         () => {
           setAssistantState('COMPLETE', 'AURA is ready');
         },
       );
     },
-    [addMessage, appendChunkToMessage, isThinking, setAssistantState, setViewMode],
+    [
+      addMessage,
+      appendChunkToMessage,
+      isMuted,
+      isThinking,
+      setAssistantState,
+      setSpeaking,
+      setViewMode,
+    ],
   );
 
   return {

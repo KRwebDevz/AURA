@@ -5,6 +5,7 @@ import { LifecycleModule } from './platform/lifecycle/lifecycle.module';
 import { AIModule } from './platform/ai/ai.module';
 import { PersonaModule } from './platform/persona/persona.module';
 import { IntelligenceModule } from './intelligence/intelligence.module';
+import { VoiceModule } from './voice/voice.module';
 import { ConversationModule } from './conversation/conversation.module';
 import { KernelModule } from './kernel/kernel.module';
 
@@ -16,6 +17,7 @@ import { KernelModule } from './kernel/kernel.module';
     AIModule,
     PersonaModule,
     IntelligenceModule,
+    VoiceModule,
     ConversationModule,
     KernelModule,
   ],

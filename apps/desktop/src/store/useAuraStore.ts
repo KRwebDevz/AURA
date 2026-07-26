@@ -27,9 +27,13 @@ interface AuraState {
   assistantState: AssistantState;
   isThinking: boolean;
   presenceState: string;
+  isMuted: boolean;
+  isSpeaking: boolean;
   setViewMode: (mode: ViewMode) => void;
   setActiveDomain: (domain: WorkspaceDomain) => void;
   setAssistantState: (state: AssistantState, presence?: string) => void;
+  toggleMute: () => void;
+  setSpeaking: (isSpeaking: boolean) => void;
   addMessage: (message: ConversationMessage) => void;
   appendChunkToMessage: (id: string, chunk: string, isDone?: boolean) => void;
   updateMessageStatus: (
@@ -47,6 +51,8 @@ export const useAuraStore = create<AuraState>((set) => ({
   assistantState: 'COMPLETE',
   isThinking: false,
   presenceState: 'AURA is ready',
+  isMuted: false,
+  isSpeaking: false,
   setViewMode: (mode) => set({ viewMode: mode }),
   setActiveDomain: (domain) => set({ activeDomain: domain }),
   setAssistantState: (assistantState, presenceState) =>
@@ -61,6 +67,8 @@ export const useAuraStore = create<AuraState>((set) => ({
             ? 'AURA is streaming response...'
             : 'AURA is ready'),
     }),
+  toggleMute: () => set((state) => ({ isMuted: !state.isMuted })),
+  setSpeaking: (isSpeaking) => set({ isSpeaking }),
   addMessage: (message) =>
     set((state) => ({ messages: [...state.messages, message] })),
   appendChunkToMessage: (id, chunk, isDone = false) =>
